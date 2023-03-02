@@ -13,5 +13,4 @@ public class HelloEdpController {
     public String hello() {
         return "Hello, EDP!";
     }
-
 }
