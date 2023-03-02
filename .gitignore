@@ -26,3 +26,6 @@ nbdist/
 /demo.iml
 /mvnw.cmd
 /mvnw
+
+### Java classes ###
+target/
