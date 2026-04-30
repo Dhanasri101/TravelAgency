@@ -1,0 +1,62 @@
+package com.epam.edp.demo.repository;
+
+import com.epam.edp.demo.model.Tour;
+import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.mongodb.repository.Query;
+import org.springframework.data.mongodb.repository.Update;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.Optional;
+
+@Repository
+public interface TourRepository extends MongoRepository<Tour, String> {
+
+    // ─────────────────────────────────────────────
+    // US4 — Destination autocomplete
+    // ─────────────────────────────────────────────
+
+    @Query(value = "{ 'destination': { $regex: ?0, $options: 'i' } }",
+            fields = "{ 'destination': 1 }")
+    List<Tour> findByDestinationRegex(String query);
+
+
+    // ─────────────────────────────────────────────
+    // US4 — Available tours with dynamic filtering
+    // Used by TourService.getAvailableTours()
+    // The actual dynamic query is built in TourService
+    // using MongoTemplate — not here
+    // ─────────────────────────────────────────────
+
+    // Exists check — used in BookingService.checkCapacity()
+    Optional<Tour> findById(String id);
+
+
+    // ─────────────────────────────────────────────
+    // US4 — Check if tour is fully booked
+    // Used in TourService.buildTourQuery()
+    // bookedCount < totalCapacity handled via MongoTemplate
+    // ─────────────────────────────────────────────
+
+    @Query("{ '_id': ?0, $expr: { $lt: ['$bookedCount', '$totalCapacity'] } }")
+    Optional<Tour> findAvailableTourById(String tourId);
+
+
+    // ─────────────────────────────────────────────
+    // US6 — Increment bookedCount when booking created
+    // ─────────────────────────────────────────────
+
+    @Query("{ '_id': ?0 }")
+    @Update("{ $inc: { 'bookedCount': 1 } }")
+    void incrementBookedCount(String tourId);
+
+
+    // ─────────────────────────────────────────────
+    // US6 — Decrement bookedCount when booking cancelled
+    // ─────────────────────────────────────────────
+
+    @Query("{ '_id': ?0 }")
+    @Update("{ $inc: { 'bookedCount': -1 } }")
+    void decrementBookedCount(String tourId);
+
+}
