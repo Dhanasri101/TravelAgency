@@ -13,10 +13,6 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-/**
- * Error-response shape is spec-compatible (always carries `message`) with
- * `fieldErrors` as an additive extension for UX.
- */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 

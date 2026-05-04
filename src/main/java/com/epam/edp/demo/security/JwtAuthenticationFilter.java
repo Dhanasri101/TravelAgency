@@ -38,9 +38,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         claims.getSubject(), null, List.of());
                 SecurityContextHolder.getContext().setAuthentication(auth);
             } catch (JwtService.InvalidJwtException e) {
-                // Invalid or expired token: drop the principal and continue.
-                // If the endpoint is public (sign-up/sign-in), the request proceeds.
-                // If it requires auth, SecurityConfig's authenticationEntryPoint returns 401.
                 SecurityContextHolder.clearContext();
             }
         }

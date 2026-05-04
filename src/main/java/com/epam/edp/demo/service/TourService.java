@@ -40,9 +40,6 @@ public class TourService {
         this.mongoTemplate = mongoTemplate;
     }
 
-    // ─────────────────────────────────────────────
-    // US4 — Destination autocomplete
-    // ─────────────────────────────────────────────
     public DestinationListResponseDTO searchDestinations(String query) {
         if (query == null || query.length() < 3) {
             throw new IllegalArgumentException(
@@ -63,9 +60,6 @@ public class TourService {
                 .build();
     }
 
-    // ─────────────────────────────────────────────
-    // US4 — Available tours with filters
-    // ─────────────────────────────────────────────
     public TourListResponseDTO getAvailableTours(
             String destination,
             LocalDate startDate,
@@ -84,14 +78,8 @@ public class TourService {
         );
 
         Sort sort = applySortOrder(sortBy);
-
-        // count total matching docs for pagination metadata
         long totalItems = mongoTemplate.count(query, Tour.class);
-
-        // apply pagination + sort
         query.with(PageRequest.of(page - 1, pageSize, sort));
-
-        // execute query
         List<Tour> tours = mongoTemplate.find(query, Tour.class);
 
         int totalPages = (int) Math.ceil((double) totalItems / pageSize);
@@ -109,15 +97,6 @@ public class TourService {
                 .build();
     }
 
-
-
-
-
-
-
-    // ─────────────────────────────────────────────
-    // Private — query builder
-    // ─────────────────────────────────────────────
     private Query buildTourQuery(
             String destination,
             LocalDate startDate,
@@ -129,7 +108,6 @@ public class TourService {
     ) {
         Query query = new Query();
 
-        // always applied — never show fully booked tours
         query.addCriteria(
                 Criteria.where("$expr").is(
                         new Document("$lt", Arrays.asList("$bookedCount", "$totalCapacity"))
@@ -179,9 +157,6 @@ public class TourService {
         return query;
     }
 
-    // ─────────────────────────────────────────────
-    // Private — sort helpers
-    // ─────────────────────────────────────────────
     private Sort applySortOrder(String sortBy) {
         if (sortBy == null) {
             return Sort.by(Sort.Direction.DESC, "rating");
@@ -194,21 +169,6 @@ public class TourService {
         };
     }
 
-    private Sort applyReviewSortOrder(String sortBy) {
-        if (sortBy == null) {
-            return Sort.by(Sort.Direction.DESC, "rate");
-        }
-        return switch (sortBy) {
-            case "RATING_ASC" -> Sort.by(Sort.Direction.ASC,  "rate");
-            case "NEWEST"     -> Sort.by(Sort.Direction.DESC, "createdAt");
-            case "OLDEST"     -> Sort.by(Sort.Direction.ASC,  "createdAt");
-            default           -> Sort.by(Sort.Direction.DESC, "rate");
-        };
-    }
-
-    // ─────────────────────────────────────────────
-    // Private — mappers
-    // ─────────────────────────────────────────────
     private TourListResponseDTO.TourItem mapToTourItem(Tour tour) {
         LocalDate earliestDate = tour.getStartDates().stream()
                 .min(Comparator.naturalOrder())
@@ -255,16 +215,11 @@ public class TourService {
         };
     }
 
-    // ─────────────────────────────────────────────
-    // US5 — Tour detail page
-    // GET /tours/{id}
-    // ─────────────────────────────────────────────
     public TourDetailResponseDTO getTourById(String id) {
         Tour tour = tourRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Tour not found: " + id));
 
-        // Compute free-cancellation deadline from the earliest start date
         LocalDate earliest = tour.getStartDates() == null ? null :
                 tour.getStartDates().stream()
                         .min(Comparator.naturalOrder())
@@ -275,13 +230,11 @@ public class TourService {
                 ? earliest.minusDays(tour.getFreeCancellationDaysBefore())
                 : null;
 
-        // Format meal plan codes to human-readable labels
         List<String> formattedMealPlans = tour.getMealPlans() == null ? List.of() :
                 tour.getMealPlans().stream()
                         .map(this::formatMealPlan)
                         .collect(Collectors.toList());
 
-        // Map GuestQuantity model -> DTO
         TourDetailResponseDTO.GuestQuantityDTO guestQuantityDTO = null;
         if (tour.getGuestQuantity() != null) {
             guestQuantityDTO = new TourDetailResponseDTO.GuestQuantityDTO(
@@ -315,13 +268,7 @@ public class TourService {
                 .build();
     }
 
-    // ─────────────────────────────────────────────
-    // US5 — Paginated reviews for a tour
-    // GET /tours/{id}/reviews?sortBy=TOP_RATED_FIRST&page=1&pageSize=4
-    // sortBy: TOP_RATED_FIRST | LOW_RATED_FIRST | NEWEST_FIRST | OLDEST_FIRST
-    // ─────────────────────────────────────────────
     public ReviewListResponseDTO getReviews(String tourId, String sortBy, int page, int pageSize) {
-        // Verify tour exists
         if (!tourRepository.existsById(tourId)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Tour not found: " + tourId);
         }
@@ -340,7 +287,6 @@ public class TourService {
                 .with(PageRequest.of(page - 1, pageSize, sort));
         List<Review> reviews = mongoTemplate.find(pagedQuery, Review.class);
 
-        // Compute average rating across ALL reviews for this tour
         List<Review> allReviews = reviewRepository.findByTourId(tourId);
         OptionalDouble avg = allReviews.stream()
                 .filter(r -> r.getRate() != null)
