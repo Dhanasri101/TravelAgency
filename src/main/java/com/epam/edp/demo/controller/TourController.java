@@ -24,10 +24,6 @@ public class TourController {
         this.tourService = tourService;
     }
 
-    // ─────────────────────────────────────────────
-    // US4 — Destination autocomplete
-    // GET /tours/destinations?destination=Pun
-    // ─────────────────────────────────────────────
     @GetMapping("/destinations")
     public ResponseEntity<DestinationListResponseDTO> getDestinations(
             @RequestParam String destination
@@ -38,10 +34,6 @@ public class TourController {
         return ResponseEntity.ok(response);
     }
 
-    // ─────────────────────────────────────────────
-    // US4 — Available tours with filters
-    // GET /tours/available?destination=...&tourType=...
-    // ─────────────────────────────────────────────
     @GetMapping("/available")
     public ResponseEntity<TourListResponseDTO> getAvailableTours(
             @RequestParam(required = false) String destination,
@@ -71,19 +63,11 @@ public class TourController {
         return ResponseEntity.ok(response);
     }
 
-    // ─────────────────────────────────────────────
-    // US5 — Tour detail page
-    // GET /tours/{id}
-    // ─────────────────────────────────────────────
     @GetMapping("/{id}")
     public ResponseEntity<TourDetailResponseDTO> getTourById(@PathVariable String id) {
         return ResponseEntity.ok(tourService.getTourById(id));
     }
 
-    // ─────────────────────────────────────────────
-    // US5 — Paginated reviews for a tour
-    // GET /tours/{id}/reviews?sortBy=TOP_RATED_FIRST&page=1&pageSize=4
-    // ─────────────────────────────────────────────
     @GetMapping("/{id}/reviews")
     public ResponseEntity<ReviewListResponseDTO> getReviews(
             @PathVariable String id,
