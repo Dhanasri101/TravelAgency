@@ -1,10 +1,13 @@
 package com.epam.edp.demo.controller;
 
 import com.epam.edp.demo.dto.DestinationListResponseDTO;
+import com.epam.edp.demo.dto.ReviewListResponseDTO;
+import com.epam.edp.demo.dto.TourDetailResponseDTO;
 import com.epam.edp.demo.dto.TourListResponseDTO;
 import com.epam.edp.demo.service.TourService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -66,5 +69,28 @@ public class TourController {
         );
 
         return ResponseEntity.ok(response);
+    }
+
+    // ─────────────────────────────────────────────
+    // US5 — Tour detail page
+    // GET /tours/{id}
+    // ─────────────────────────────────────────────
+    @GetMapping("/{id}")
+    public ResponseEntity<TourDetailResponseDTO> getTourById(@PathVariable String id) {
+        return ResponseEntity.ok(tourService.getTourById(id));
+    }
+
+    // ─────────────────────────────────────────────
+    // US5 — Paginated reviews for a tour
+    // GET /tours/{id}/reviews?sortBy=TOP_RATED_FIRST&page=1&pageSize=4
+    // ─────────────────────────────────────────────
+    @GetMapping("/{id}/reviews")
+    public ResponseEntity<ReviewListResponseDTO> getReviews(
+            @PathVariable String id,
+            @RequestParam(defaultValue = "TOP_RATED_FIRST") String sortBy,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "4") int pageSize
+    ) {
+        return ResponseEntity.ok(tourService.getReviews(id, sortBy, page, pageSize));
     }
 }
