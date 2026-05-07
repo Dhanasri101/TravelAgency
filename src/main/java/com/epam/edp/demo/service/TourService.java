@@ -58,6 +58,7 @@ public class TourService {
     public TourListResponseDTO getAvailableTours(
             String destination,
             LocalDate startDate,
+            LocalDate endDate,
             String duration,
             Integer adults,
             Integer children,
@@ -68,7 +69,7 @@ public class TourService {
             int pageSize
     ) {
         Query query = buildTourQuery(
-                destination, startDate, duration,
+                destination, startDate, endDate, duration,
                 adults, children, mealPlan, tourType
         );
 
@@ -110,6 +111,7 @@ public class TourService {
     private Query buildTourQuery(
             String destination,
             LocalDate startDate,
+            LocalDate endDate,
             String duration,
             Integer adults,
             Integer children,
@@ -134,9 +136,18 @@ public class TourService {
         }
 
         if (startDate != null) {
-            query.addCriteria(
-                    Criteria.where("startDates").in(startDate)
-            );
+            if (endDate != null) {
+                // Filter tours with start dates within the range
+                Criteria dateCriteria = new Criteria().gte(startDate).lte(endDate);
+                query.addCriteria(
+                        Criteria.where("startDates").elemMatch(dateCriteria)
+                );
+            } else {
+                // Single date - exact match
+                query.addCriteria(
+                        Criteria.where("startDates").in(startDate)
+                );
+            }
         }
 
         if (duration != null) {
@@ -195,9 +206,12 @@ public class TourService {
         };
     }
 
+<<<<<<< Updated upstream
     // ─────────────────────────────────────────────
     // Private — mappers
     // ─────────────────────────────────────────────
+=======
+>>>>>>> Stashed changes
     private TourListResponseDTO.TourItem mapToTourItem(Tour tour) {
         LocalDate earliestDate = tour.getStartDates().stream()
                 .min(Comparator.naturalOrder())
