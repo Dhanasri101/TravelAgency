@@ -1,14 +1,20 @@
 package com.epam.edp.demo.service;
 import com.epam.edp.demo.dto.DestinationListResponseDTO;
+import com.epam.edp.demo.dto.ReviewListResponseDTO;
+import com.epam.edp.demo.dto.TourDetailResponseDTO;
 import com.epam.edp.demo.dto.TourListResponseDTO;
+import com.epam.edp.demo.model.Review;
 import com.epam.edp.demo.model.Tour;
+import com.epam.edp.demo.repository.ReviewRepository;
 import com.epam.edp.demo.repository.TourRepository;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import org.bson.Document;
 
@@ -16,22 +22,24 @@ import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.OptionalDouble;
 import java.util.stream.Collectors;
 
 @Service
 public class TourService {
 
     private final TourRepository tourRepository;
+    private final ReviewRepository reviewRepository;
     private final MongoTemplate mongoTemplate;
 
-    public TourService(TourRepository tourRepository, MongoTemplate mongoTemplate) {
+    public TourService(TourRepository tourRepository,
+                       ReviewRepository reviewRepository,
+                       MongoTemplate mongoTemplate) {
         this.tourRepository = tourRepository;
+        this.reviewRepository = reviewRepository;
         this.mongoTemplate = mongoTemplate;
     }
 
-    // ─────────────────────────────────────────────
-    // US4 — Destination autocomplete
-    // ─────────────────────────────────────────────
     public DestinationListResponseDTO searchDestinations(String query) {
         if (query == null || query.length() < 3) {
             throw new IllegalArgumentException(
@@ -52,9 +60,6 @@ public class TourService {
                 .build();
     }
 
-    // ─────────────────────────────────────────────
-    // US4 — Available tours with filters
-    // ─────────────────────────────────────────────
     public TourListResponseDTO getAvailableTours(
             String destination,
             LocalDate startDate,
@@ -74,14 +79,8 @@ public class TourService {
         );
 
         Sort sort = applySortOrder(sortBy);
-
-        // count total matching docs for pagination metadata
         long totalItems = mongoTemplate.count(query, Tour.class);
-
-        // apply pagination + sort
         query.with(PageRequest.of(page - 1, pageSize, sort));
-
-        // execute query
         List<Tour> tours = mongoTemplate.find(query, Tour.class);
 
         int totalPages = (int) Math.ceil((double) totalItems / pageSize);
@@ -99,15 +98,6 @@ public class TourService {
                 .build();
     }
 
-
-
-
-
-
-
-    // ─────────────────────────────────────────────
-    // Private — query builder
-    // ─────────────────────────────────────────────
     private Query buildTourQuery(
             String destination,
             LocalDate startDate,
@@ -120,7 +110,6 @@ public class TourService {
     ) {
         Query query = new Query();
 
-        // always applied — never show fully booked tours
         query.addCriteria(
                 Criteria.where("$expr").is(
                         new Document("$lt", Arrays.asList("$bookedCount", "$totalCapacity"))
@@ -179,9 +168,6 @@ public class TourService {
         return query;
     }
 
-    // ─────────────────────────────────────────────
-    // Private — sort helpers
-    // ─────────────────────────────────────────────
     private Sort applySortOrder(String sortBy) {
         if (sortBy == null) {
             return Sort.by(Sort.Direction.DESC, "rating");
@@ -194,6 +180,7 @@ public class TourService {
         };
     }
 
+<<<<<<< HEAD
     private Sort applyReviewSortOrder(String sortBy) {
         if (sortBy == null) {
             return Sort.by(Sort.Direction.DESC, "rate");
@@ -212,6 +199,8 @@ public class TourService {
     // ─────────────────────────────────────────────
 =======
 >>>>>>> Stashed changes
+=======
+>>>>>>> origin/develop
     private TourListResponseDTO.TourItem mapToTourItem(Tour tour) {
         LocalDate earliestDate = tour.getStartDates().stream()
                 .min(Comparator.naturalOrder())
@@ -256,5 +245,109 @@ public class TourService {
             case "AI" -> "All inclusive (AI)";
             default   -> code;
         };
+    }
+
+    public TourDetailResponseDTO getTourById(String id) {
+        Tour tour = tourRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Tour not found: " + id));
+
+        LocalDate earliest = tour.getStartDates() == null ? null :
+                tour.getStartDates().stream()
+                        .min(Comparator.naturalOrder())
+                        .orElse(null);
+
+        LocalDate freeCancellationDeadline = (earliest != null
+                && tour.getFreeCancellationDaysBefore() != null)
+                ? earliest.minusDays(tour.getFreeCancellationDaysBefore())
+                : null;
+
+        List<String> formattedMealPlans = tour.getMealPlans() == null ? List.of() :
+                tour.getMealPlans().stream()
+                        .map(this::formatMealPlan)
+                        .collect(Collectors.toList());
+
+        TourDetailResponseDTO.GuestQuantityDTO guestQuantityDTO = null;
+        if (tour.getGuestQuantity() != null) {
+            guestQuantityDTO = new TourDetailResponseDTO.GuestQuantityDTO(
+                    tour.getGuestQuantity().getAdultsMaxValue(),
+                    tour.getGuestQuantity().getChildrenMaxValue(),
+                    tour.getGuestQuantity().getTotalMaxValue()
+            );
+        }
+
+        return TourDetailResponseDTO.builder()
+                .id(tour.getId())
+                .name(tour.getName())
+                .destination(tour.getDestination())
+                .summary(tour.getSummary())
+                .imageUrls(tour.getImageUrls())
+                .rating(tour.getRating())
+                .reviewCount(tour.getReviewCount())
+                .startDates(tour.getStartDates())
+                .durations(tour.getDurations())
+                .pricePerDuration(tour.getPricePerDuration())
+                .mealPlans(formattedMealPlans)
+                .mealSupplementsPerDay(tour.getMealSupplementsPerDay())
+                .hotelName(tour.getHotelName())
+                .hotelDescription(tour.getHotelDescription())
+                .accommodation(tour.getAccommodation())
+                .tourType(tour.getTourType())
+                .customDetails(tour.getCustomDetails())
+                .guestQuantity(guestQuantityDTO)
+                .freeCancellationDaysBefore(tour.getFreeCancellationDaysBefore())
+                .freeCancellationDeadline(freeCancellationDeadline)
+                .build();
+    }
+
+    public ReviewListResponseDTO getReviews(String tourId, String sortBy, int page, int pageSize) {
+        if (!tourRepository.existsById(tourId)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Tour not found: " + tourId);
+        }
+
+        Sort sort = switch (sortBy == null ? "TOP_RATED_FIRST" : sortBy) {
+            case "LOW_RATED_FIRST" -> Sort.by(Sort.Direction.ASC,  "rate");
+            case "NEWEST_FIRST"   -> Sort.by(Sort.Direction.DESC, "createdAt");
+            case "OLDEST_FIRST"   -> Sort.by(Sort.Direction.ASC,  "createdAt");
+            default               -> Sort.by(Sort.Direction.DESC, "rate"); // TOP_RATED_FIRST
+        };
+
+        Query countQuery = new Query(Criteria.where("tourId").is(tourId));
+        long totalItems = mongoTemplate.count(countQuery, Review.class);
+
+        Query pagedQuery = new Query(Criteria.where("tourId").is(tourId))
+                .with(PageRequest.of(page - 1, pageSize, sort));
+        List<Review> reviews = mongoTemplate.find(pagedQuery, Review.class);
+
+        List<Review> allReviews = reviewRepository.findByTourId(tourId);
+        OptionalDouble avg = allReviews.stream()
+                .filter(r -> r.getRate() != null)
+                .mapToDouble(Review::getRate)
+                .average();
+        Double averageRating = avg.isPresent()
+                ? Math.round(avg.getAsDouble() * 100.0) / 100.0
+                : null;
+
+        int totalPages = (int) Math.ceil((double) totalItems / pageSize);
+
+        List<ReviewListResponseDTO.ReviewItem> items = reviews.stream()
+                .map(r -> ReviewListResponseDTO.ReviewItem.builder()
+                        .id(r.getId())
+                        .userName(r.getUserName())
+                        .userAvatarUrl(r.getUserAvatarUrl())
+                        .rate(r.getRate())
+                        .comment(r.getComment())
+                        .reviewDate(r.getReviewDate())
+                        .build())
+                .collect(Collectors.toList());
+
+        return ReviewListResponseDTO.builder()
+                .reviews(items)
+                .page(page)
+                .pageSize(pageSize)
+                .totalPages(totalPages)
+                .totalItems((int) totalItems)
+                .averageRating(averageRating)
+                .build();
     }
 }

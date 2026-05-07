@@ -1,26 +1,22 @@
-package com.epam.edp.demo.model;
+package com.epam.edp.demo.dto;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.mongodb.core.mapping.Document;
-
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
-@Document(collection = "tours")
 @Getter
 @Setter
 @NoArgsConstructor
-public class Tour {
+@AllArgsConstructor
+@Builder
+public class TourDetailResponseDTO {
 
-    @Id
     private String id;
     private String name;
     private String destination;
@@ -33,27 +29,21 @@ public class Tour {
     private Map<String, String> pricePerDuration;
     private List<String> mealPlans;
     private Map<String, String> mealSupplementsPerDay;
-    private String tourType;
     private String hotelName;
     private String hotelDescription;
     private String accommodation;
+    private String tourType;
     private Map<String, String> customDetails;
-    private GuestQuantity guestQuantity;
-    private Integer totalCapacity;
-    private Integer bookedCount;
+    private GuestQuantityDTO guestQuantity;
     private Integer freeCancellationDaysBefore;
-    private String assignedAgentId;
-
-    @CreatedDate
-    private LocalDateTime createdAt;
-
-    @LastModifiedDate
-    private LocalDateTime updatedAt;
+    private LocalDate freeCancellationDeadline;
 
     @Getter
     @Setter
     @NoArgsConstructor
-    public static class GuestQuantity {
+    @AllArgsConstructor
+    @Builder
+    public static class GuestQuantityDTO {
         private Integer adultsMaxValue;
         private Integer childrenMaxValue;
         private Integer totalMaxValue;

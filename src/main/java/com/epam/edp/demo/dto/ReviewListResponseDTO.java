@@ -14,29 +14,26 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class TourListResponseDTO {
+public class ReviewListResponseDTO {
 
-    private List<TourItem> tours;
+    private List<ReviewItem> reviews;
     private Integer page;
     private Integer pageSize;
     private Integer totalPages;
     private Integer totalItems;
+    private Double averageRating;
 
     @Getter
     @Setter
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    public static class TourItem {
+    public static class ReviewItem {
         private String id;
-        private String name;
-        private String destination;
-        private LocalDate startDate;
-        private List<String> durations;
-        private List<String> mealPlans;
-        private String price;
-        private Double rating;
-        private Integer reviews;
-        private LocalDate freeCancellation;
+        private String userName;
+        private String userAvatarUrl;
+        private Double rate;
+        private String comment;
+        private LocalDate reviewDate;
     }
 }
