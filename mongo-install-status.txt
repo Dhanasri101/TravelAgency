@@ -1,0 +1,9 @@
+TIME=2026-05-05T17:26:58
+TASKS
+winget.exe                    3076 Console                    5     52,420 K
+msiexec.exe                  15544 Services                   0     28,456 K
+SERVICE
+[SC] EnumQueryServicesStatus:OpenService FAILED 1060:
+
+The specified service does not exist as an installed service.
+SERVER_DIR_MISSING

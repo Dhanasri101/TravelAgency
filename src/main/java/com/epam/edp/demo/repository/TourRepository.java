@@ -52,11 +52,31 @@ public interface TourRepository extends MongoRepository<Tour, String> {
 
 
     // ─────────────────────────────────────────────
+    // US6 — Increment only if seats are still available
+    // Returns modified document count (0 means full / not found)
+    // ─────────────────────────────────────────────
+
+    @Query("{ '_id': ?0, $expr: { $lt: ['$bookedCount', '$totalCapacity'] } }")
+    @Update("{ $inc: { 'bookedCount': 1 } }")
+    long incrementBookedCountIfCapacityAvailable(String tourId);
+
+
+    // ─────────────────────────────────────────────
     // US6 — Decrement bookedCount when booking cancelled
     // ─────────────────────────────────────────────
 
     @Query("{ '_id': ?0 }")
     @Update("{ $inc: { 'bookedCount': -1 } }")
     void decrementBookedCount(String tourId);
+
+
+    // ─────────────────────────────────────────────
+    // US6 — Safe decrement for cancellation
+    // Returns modified document count (0 means nothing decremented)
+    // ─────────────────────────────────────────────
+
+    @Query("{ '_id': ?0, 'bookedCount': { $gt: 0 } }")
+    @Update("{ $inc: { 'bookedCount': -1 } }")
+    long decrementBookedCountIfPositive(String tourId);
 
 }

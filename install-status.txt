@@ -1,0 +1,2 @@
+winget.exe                   35272 Console                    5     59,472 K
+winget.exe                   10060 Console                    5     57,096 K
