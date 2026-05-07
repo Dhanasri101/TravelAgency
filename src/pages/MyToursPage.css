@@ -1,0 +1,330 @@
+/* ── status filter tabs ───────────────────────────────────────── */
+.mt-status-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid #e4eef4;
+  margin-bottom: 32px;
+}
+
+.mt-status-tab {
+  background: none;
+  border: none;
+  padding: 12px 20px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #7fa8be;
+  cursor: pointer;
+  position: relative;
+  transition: color 0.15s;
+}
+
+.mt-status-tab:hover { color: #0c6d8f; }
+
+.mt-status-tab.active {
+  color: #0c6d8f;
+}
+
+.mt-status-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: #0c6d8f;
+  border-radius: 3px 3px 0 0;
+}
+
+/* ── bookings grid ───────────────────────────────────────────── */
+.mt-bookings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(520px, 1fr));
+  gap: 24px;
+}
+
+/* ── booking card ────────────────────────────────────────────── */
+.mt-card {
+  background: #fff;
+  border: 1px solid #d4e5ed;
+  border-radius: 16px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  transition: border-color 0.2s;
+}
+
+.mt-card:hover {
+  border-color: #a8cad9;
+}
+
+/* ── progress stepper (breadcrumb chevron) ────────────────────── */
+.mt-stepper {
+  display: flex;
+  align-items: stretch;
+  height: 40px;
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+.mt-step {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  background: #f5f9fb;
+  border: 1.5px solid #d4e5ed;
+  border-right: none;
+  margin-right: 0;
+}
+
+.mt-step:last-child {
+  border-right: 1.5px solid #d4e5ed;
+}
+
+/* Arrow shape using pseudo-elements */
+.mt-step::after {
+  content: '';
+  position: absolute;
+  right: -12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-top: 20px solid transparent;
+  border-bottom: 20px solid transparent;
+  border-left: 12px solid #f5f9fb;
+  z-index: 2;
+}
+
+.mt-step::before {
+  content: '';
+  position: absolute;
+  right: -14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-top: 21px solid transparent;
+  border-bottom: 21px solid transparent;
+  border-left: 13px solid #d4e5ed;
+  z-index: 1;
+}
+
+.mt-step:last-child::after,
+.mt-step:last-child::before {
+  display: none;
+}
+
+/* Done state */
+.mt-step.done {
+  background: #eef7fa;
+  border-color: #0c6d8f;
+}
+
+.mt-step.done::after {
+  border-left-color: #eef7fa;
+}
+
+.mt-step.done::before {
+  border-left-color: #0c6d8f;
+}
+
+/* Step content */
+.mt-step-content {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  z-index: 3;
+}
+
+.mt-step-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #b0c8d8;
+  white-space: nowrap;
+}
+
+.mt-step.done .mt-step-label {
+  color: #0d2b3e;
+  font-weight: 700;
+}
+
+.mt-step.done .mt-step-content svg {
+  color: #0c6d8f;
+}
+
+.mt-step-indicator {
+  display: none;
+}
+
+
+.mt-step-arrow {
+  display: none;
+}
+
+/* ── card body ───────────────────────────────────────────────── */
+.mt-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.mt-tour-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.mt-tour-img {
+  width: 80px;
+  height: 60px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.mt-tour-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0d2b3e;
+  margin: 0 0 3px;
+}
+
+.mt-tour-dest {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.82rem;
+  color: #7fa8be;
+}
+
+/* ── details grid ────────────────────────────────────────────── */
+.mt-details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.mt-col-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #0d2b3e;
+  margin: 0 0 10px;
+}
+
+.mt-detail-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 0.82rem;
+  color: #2d5a70;
+  line-height: 1.5;
+  margin-bottom: 6px;
+}
+
+.mt-detail-row svg {
+  margin-top: 1px;
+  flex-shrink: 0;
+}
+
+.mt-detail-row strong {
+  color: #0d2b3e;
+  font-weight: 700;
+}
+
+.mt-messenger-icon {
+  font-size: 0.82rem;
+}
+
+.mt-no-agent {
+  color: #b0c8d8;
+  font-style: italic;
+}
+
+/* ── card actions ────────────────────────────────────────────── */
+.mt-card-actions {
+  display: flex;
+  gap: 10px;
+  padding-top: 8px;
+  border-top: 1px solid #e4eef4;
+}
+
+.mt-btn-outline {
+  background: none;
+  border: 1.5px solid #0c6d8f;
+  color: #0c6d8f;
+  border-radius: 8px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  padding: 9px 18px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.mt-btn-outline:hover {
+  background: #e5f1f7;
+}
+
+.mt-btn-solid {
+  background: #0c6d8f;
+  border: 1.5px solid #0c6d8f;
+  color: #fff;
+  border-radius: 8px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  padding: 9px 18px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.mt-btn-solid:hover {
+  background: #095a76;
+}
+
+/* ── cancelled ───────────────────────────────────────────────── */
+.mt-cancelled-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: 8px;
+  border-top: 1px solid #e4eef4;
+}
+
+.mt-cancelled-badge {
+  background: #fdecea;
+  color: #c0392b;
+  border-radius: 6px;
+  padding: 4px 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.mt-cancel-reason {
+  font-size: 0.82rem;
+  color: #7fa8be;
+}
+
+/* ── loading / empty ─────────────────────────────────────────── */
+.mt-loading, .mt-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: #7fa8be;
+  font-size: 0.95rem;
+}
+
+/* ── responsive ──────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .mt-bookings-grid {
+    grid-template-columns: 1fr;
+  }
+  .mt-details-grid {
+    grid-template-columns: 1fr;
+  }
+  .mt-stepper {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+}
+
