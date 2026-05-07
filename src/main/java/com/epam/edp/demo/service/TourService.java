@@ -63,6 +63,7 @@ public class TourService {
     public TourListResponseDTO getAvailableTours(
             String destination,
             LocalDate startDate,
+            LocalDate endDate,
             String duration,
             Integer adults,
             Integer children,
@@ -73,7 +74,7 @@ public class TourService {
             int pageSize
     ) {
         Query query = buildTourQuery(
-                destination, startDate, duration,
+                destination, startDate, endDate, duration,
                 adults, children, mealPlan, tourType
         );
 
@@ -100,6 +101,7 @@ public class TourService {
     private Query buildTourQuery(
             String destination,
             LocalDate startDate,
+            LocalDate endDate,
             String duration,
             Integer adults,
             Integer children,
@@ -123,9 +125,18 @@ public class TourService {
         }
 
         if (startDate != null) {
-            query.addCriteria(
-                    Criteria.where("startDates").in(startDate)
-            );
+            if (endDate != null) {
+                // Filter tours with start dates within the range
+                Criteria dateCriteria = new Criteria().gte(startDate).lte(endDate);
+                query.addCriteria(
+                        Criteria.where("startDates").elemMatch(dateCriteria)
+                );
+            } else {
+                // Single date - exact match
+                query.addCriteria(
+                        Criteria.where("startDates").in(startDate)
+                );
+            }
         }
 
         if (duration != null) {
@@ -169,6 +180,27 @@ public class TourService {
         };
     }
 
+<<<<<<< HEAD
+    private Sort applyReviewSortOrder(String sortBy) {
+        if (sortBy == null) {
+            return Sort.by(Sort.Direction.DESC, "rate");
+        }
+        return switch (sortBy) {
+            case "RATING_ASC" -> Sort.by(Sort.Direction.ASC,  "rate");
+            case "NEWEST"     -> Sort.by(Sort.Direction.DESC, "createdAt");
+            case "OLDEST"     -> Sort.by(Sort.Direction.ASC,  "createdAt");
+            default           -> Sort.by(Sort.Direction.DESC, "rate");
+        };
+    }
+
+<<<<<<< Updated upstream
+    // ─────────────────────────────────────────────
+    // Private — mappers
+    // ─────────────────────────────────────────────
+=======
+>>>>>>> Stashed changes
+=======
+>>>>>>> origin/develop
     private TourListResponseDTO.TourItem mapToTourItem(Tour tour) {
         LocalDate earliestDate = tour.getStartDates().stream()
                 .min(Comparator.naturalOrder())
