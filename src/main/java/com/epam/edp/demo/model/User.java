@@ -33,6 +33,10 @@ public class User {
 
     private Role role;
 
+    // Travel Agent contact info (null for CUSTOMER role)
+    private String phone;
+    private String messengerLink;
+
     private int failedLoginAttempts;
     private Instant lockedUntil;
 
