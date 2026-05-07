@@ -38,6 +38,7 @@ public class TourController {
     public ResponseEntity<TourListResponseDTO> getAvailableTours(
             @RequestParam(required = false) String destination,
             @RequestParam(required = false) LocalDate startDate,
+            @RequestParam(required = false) LocalDate endDate,
             @RequestParam(required = false) String duration,
             @RequestParam(required = false) Integer adults,
             @RequestParam(required = false) Integer children,
@@ -50,6 +51,7 @@ public class TourController {
         TourListResponseDTO response = tourService.getAvailableTours(
                 destination,
                 startDate,
+                endDate,
                 duration,
                 adults,
                 children,

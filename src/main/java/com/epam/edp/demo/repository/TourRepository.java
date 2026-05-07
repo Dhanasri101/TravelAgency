@@ -28,8 +28,7 @@ public interface TourRepository extends MongoRepository<Tour, String> {
     // using MongoTemplate — not here
     // ─────────────────────────────────────────────
 
-    // Exists check — used in BookingService.checkCapacity()
-    Optional<Tour> findById(String id);
+    // findById is inherited from MongoRepository
 
 
     // ─────────────────────────────────────────────
