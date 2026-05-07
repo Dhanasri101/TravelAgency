@@ -102,7 +102,7 @@ class TourServiceTest {
         when(mongoTemplate.find(any(Query.class), eq(Tour.class))).thenReturn(List.of(t1, t2));
 
         TourListResponseDTO response = tourService.getAvailableTours(
-                null, null, null, null, null, null, null, "RATING_DESC", 2, 2);
+            null, null, null, null, null, null, null, null, "RATING_DESC", 2, 2);
 
         assertEquals(2, response.getPage());
         assertEquals(2, response.getPageSize());
@@ -116,7 +116,7 @@ class TourServiceTest {
         when(mongoTemplate.count(any(Query.class), eq(Tour.class))).thenReturn(0L);
         when(mongoTemplate.find(any(Query.class), eq(Tour.class))).thenReturn(List.of());
 
-        tourService.getAvailableTours(null, null, null, null, null, null, null, "RATING_DESC", 1, 6);
+        tourService.getAvailableTours(null, null, null, null, null, null, null, null, "RATING_DESC", 1, 6);
 
         ArgumentCaptor<Query> captor = ArgumentCaptor.forClass(Query.class);
         verify(mongoTemplate).count(captor.capture(), eq(Tour.class));
@@ -130,7 +130,7 @@ class TourServiceTest {
         when(mongoTemplate.count(any(Query.class), eq(Tour.class))).thenReturn(0L);
         when(mongoTemplate.find(any(Query.class), eq(Tour.class))).thenReturn(List.of());
 
-        tourService.getAvailableTours("Paris", null, null, null, null, null, null, "RATING_DESC", 1, 6);
+        tourService.getAvailableTours("Paris", null, null, null, null, null, null, null, "RATING_DESC", 1, 6);
 
         ArgumentCaptor<Query> captor = ArgumentCaptor.forClass(Query.class);
         verify(mongoTemplate).count(captor.capture(), eq(Tour.class));
@@ -142,7 +142,7 @@ class TourServiceTest {
         when(mongoTemplate.count(any(Query.class), eq(Tour.class))).thenReturn(0L);
         when(mongoTemplate.find(any(Query.class), eq(Tour.class))).thenReturn(List.of());
 
-        tourService.getAvailableTours("Any destination", null, null, null, null, null, null, "RATING_DESC", 1, 6);
+        tourService.getAvailableTours("Any destination", null, null, null, null, null, null, null, "RATING_DESC", 1, 6);
 
         ArgumentCaptor<Query> captor = ArgumentCaptor.forClass(Query.class);
         verify(mongoTemplate).count(captor.capture(), eq(Tour.class));
@@ -155,7 +155,7 @@ class TourServiceTest {
         when(mongoTemplate.count(any(Query.class), eq(Tour.class))).thenReturn(0L);
         when(mongoTemplate.find(any(Query.class), eq(Tour.class))).thenReturn(List.of());
 
-        tourService.getAvailableTours(null, null, null, 2, 1, null, null, "RATING_DESC", 1, 6);
+        tourService.getAvailableTours(null, null, null, null, 2, 1, null, null, "RATING_DESC", 1, 6);
 
         ArgumentCaptor<Query> captor = ArgumentCaptor.forClass(Query.class);
         verify(mongoTemplate).count(captor.capture(), eq(Tour.class));
@@ -167,7 +167,7 @@ class TourServiceTest {
         when(mongoTemplate.count(any(Query.class), eq(Tour.class))).thenReturn(0L);
         when(mongoTemplate.find(any(Query.class), eq(Tour.class))).thenReturn(List.of());
 
-        tourService.getAvailableTours(null, null, null, null, 2, null, null, "RATING_DESC", 1, 6);
+        tourService.getAvailableTours(null, null, null, null, null, 2, null, null, "RATING_DESC", 1, 6);
 
         ArgumentCaptor<Query> captor = ArgumentCaptor.forClass(Query.class);
         verify(mongoTemplate).count(captor.capture(), eq(Tour.class));
@@ -183,7 +183,7 @@ class TourServiceTest {
         when(mongoTemplate.find(any(Query.class), eq(Tour.class))).thenReturn(List.of(t));
 
         TourListResponseDTO response = tourService.getAvailableTours(
-                null, null, null, null, null, null, null, "RATING_DESC", 1, 6);
+            null, null, null, null, null, null, null, null, "RATING_DESC", 1, 6);
 
         assertEquals("Breakfast (BB)", response.getTours().get(0).getMealPlans().get(0));
         assertEquals("Half-board (HB)", response.getTours().get(0).getMealPlans().get(1));
@@ -199,7 +199,7 @@ class TourServiceTest {
         when(mongoTemplate.find(any(Query.class), eq(Tour.class))).thenReturn(List.of(t));
 
         TourListResponseDTO response = tourService.getAvailableTours(
-                null, null, null, null, null, null, null, "RATING_DESC", 1, 6);
+            null, null, null, null, null, null, null, null, "RATING_DESC", 1, 6);
 
         assertEquals(LocalDate.of(2026, 6, 26), response.getTours().get(0).getFreeCancellation());
     }
@@ -375,7 +375,7 @@ class TourServiceTest {
         when(mongoTemplate.find(any(Query.class), eq(Tour.class))).thenReturn(List.of());
 
         TourListResponseDTO response = tourService.getAvailableTours(
-                null, null, null, null, null, null, null, "PRICE_ASC", 1, 6);
+            null, null, null, null, null, null, null, null, "PRICE_ASC", 1, 6);
 
         assertEquals(0, response.getTotalItems());
     }
@@ -386,7 +386,7 @@ class TourServiceTest {
         when(mongoTemplate.find(any(Query.class), eq(Tour.class))).thenReturn(List.of());
 
         TourListResponseDTO response = tourService.getAvailableTours(
-                null, null, null, null, null, null, null, "PRICE_DESC", 1, 6);
+            null, null, null, null, null, null, null, null, "PRICE_DESC", 1, 6);
 
         assertEquals(0, response.getTotalItems());
     }

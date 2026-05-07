@@ -68,11 +68,11 @@ class TourControllerTest {
     @Test
     void getAvailableTours_returnsOkAndBody() {
         TourListResponseDTO dto = TourListResponseDTO.builder().tours(List.of()).build();
-        when(tourService.getAvailableTours("Paris", LocalDate.of(2026, 6, 1), "7 days", 2, 1, "BB", "City", "RATING_DESC", 1, 6))
+        when(tourService.getAvailableTours("Paris", LocalDate.of(2026, 6, 1), null, "7 days", 2, 1, "BB", "City", "RATING_DESC", 1, 6))
                 .thenReturn(dto);
 
         ResponseEntity<TourListResponseDTO> response = tourController.getAvailableTours(
-                "Paris", LocalDate.of(2026, 6, 1), "7 days", 2, 1, "BB", "City", "RATING_DESC", 1, 6);
+            "Paris", LocalDate.of(2026, 6, 1), null, "7 days", 2, 1, "BB", "City", "RATING_DESC", 1, 6);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(dto, response.getBody());
@@ -80,33 +80,33 @@ class TourControllerTest {
 
     @Test
     void getAvailableTours_delegatesAllFiltersToService() {
-        when(tourService.getAvailableTours("Rome", LocalDate.of(2026, 7, 1), "5 days", 1, 0, "HB", "Heritage", "PRICE_ASC", 2, 10))
+        when(tourService.getAvailableTours("Rome", LocalDate.of(2026, 7, 1), null, "5 days", 1, 0, "HB", "Heritage", "PRICE_ASC", 2, 10))
                 .thenReturn(TourListResponseDTO.builder().tours(List.of()).build());
 
-        tourController.getAvailableTours("Rome", LocalDate.of(2026, 7, 1), "5 days", 1, 0, "HB", "Heritage", "PRICE_ASC", 2, 10);
+        tourController.getAvailableTours("Rome", LocalDate.of(2026, 7, 1), null, "5 days", 1, 0, "HB", "Heritage", "PRICE_ASC", 2, 10);
 
-        verify(tourService).getAvailableTours("Rome", LocalDate.of(2026, 7, 1), "5 days", 1, 0, "HB", "Heritage", "PRICE_ASC", 2, 10);
+        verify(tourService).getAvailableTours("Rome", LocalDate.of(2026, 7, 1), null, "5 days", 1, 0, "HB", "Heritage", "PRICE_ASC", 2, 10);
     }
 
     @Test
     void getAvailableTours_acceptsNullOptionalFilters() {
-        when(tourService.getAvailableTours(null, null, null, null, null, null, null, "RATING_DESC", 1, 6))
+        when(tourService.getAvailableTours(null, null, null, null, null, null, null, null, "RATING_DESC", 1, 6))
                 .thenReturn(TourListResponseDTO.builder().tours(List.of()).build());
 
         ResponseEntity<TourListResponseDTO> response = tourController.getAvailableTours(
-                null, null, null, null, null, null, null, "RATING_DESC", 1, 6);
+            null, null, null, null, null, null, null, null, "RATING_DESC", 1, 6);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        verify(tourService).getAvailableTours(null, null, null, null, null, null, null, "RATING_DESC", 1, 6);
+        verify(tourService).getAvailableTours(null, null, null, null, null, null, null, null, "RATING_DESC", 1, 6);
     }
 
     @Test
     void getAvailableTours_propagatesServiceExceptions() {
-        when(tourService.getAvailableTours(null, null, null, null, null, null, null, "RATING_DESC", 1, 6))
+        when(tourService.getAvailableTours(null, null, null, null, null, null, null, null, "RATING_DESC", 1, 6))
                 .thenThrow(new RuntimeException("search failure"));
 
         RuntimeException ex = assertThrows(RuntimeException.class,
-                () -> tourController.getAvailableTours(null, null, null, null, null, null, null, "RATING_DESC", 1, 6));
+            () -> tourController.getAvailableTours(null, null, null, null, null, null, null, null, "RATING_DESC", 1, 6));
 
         assertEquals("search failure", ex.getMessage());
     }
@@ -173,46 +173,46 @@ class TourControllerTest {
 
     @Test
     void getAvailableTours_passesSortByPriceDesc() {
-        when(tourService.getAvailableTours(null, null, null, null, null, null, null, "PRICE_DESC", 1, 6))
+        when(tourService.getAvailableTours(null, null, null, null, null, null, null, null, "PRICE_DESC", 1, 6))
                 .thenReturn(TourListResponseDTO.builder().tours(List.of()).build());
 
-        tourController.getAvailableTours(null, null, null, null, null, null, null, "PRICE_DESC", 1, 6);
+        tourController.getAvailableTours(null, null, null, null, null, null, null, null, "PRICE_DESC", 1, 6);
 
-        verify(tourService).getAvailableTours(null, null, null, null, null, null, null, "PRICE_DESC", 1, 6);
+        verify(tourService).getAvailableTours(null, null, null, null, null, null, null, null, "PRICE_DESC", 1, 6);
     }
 
     @Test
     void getAvailableTours_passesSortByPriceAsc() {
-        when(tourService.getAvailableTours(null, null, null, null, null, null, null, "PRICE_ASC", 1, 6))
+        when(tourService.getAvailableTours(null, null, null, null, null, null, null, null, "PRICE_ASC", 1, 6))
                 .thenReturn(TourListResponseDTO.builder().tours(List.of()).build());
 
-        tourController.getAvailableTours(null, null, null, null, null, null, null, "PRICE_ASC", 1, 6);
+        tourController.getAvailableTours(null, null, null, null, null, null, null, null, "PRICE_ASC", 1, 6);
 
-        verify(tourService).getAvailableTours(null, null, null, null, null, null, null, "PRICE_ASC", 1, 6);
+        verify(tourService).getAvailableTours(null, null, null, null, null, null, null, null, "PRICE_ASC", 1, 6);
     }
 
     @Test
     void getAvailableTours_passesCustomPagingValues() {
-        when(tourService.getAvailableTours(null, null, null, null, null, null, null, "RATING_DESC", 3, 12))
+        when(tourService.getAvailableTours(null, null, null, null, null, null, null, null, "RATING_DESC", 3, 12))
                 .thenReturn(TourListResponseDTO.builder().tours(List.of()).build());
 
         ResponseEntity<TourListResponseDTO> response = tourController.getAvailableTours(
-                null, null, null, null, null, null, null, "RATING_DESC", 3, 12);
+            null, null, null, null, null, null, null, null, "RATING_DESC", 3, 12);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        verify(tourService).getAvailableTours(null, null, null, null, null, null, null, "RATING_DESC", 3, 12);
+        verify(tourService).getAvailableTours(null, null, null, null, null, null, null, null, "RATING_DESC", 3, 12);
     }
 
     @Test
     void getAvailableTours_forwardsZeroAndNegativePagingValues() {
-        when(tourService.getAvailableTours(null, null, null, null, null, null, null, "RATING_DESC", 0, -5))
+        when(tourService.getAvailableTours(null, null, null, null, null, null, null, null, "RATING_DESC", 0, -5))
                 .thenReturn(TourListResponseDTO.builder().tours(List.of()).build());
 
         ResponseEntity<TourListResponseDTO> response = tourController.getAvailableTours(
-                null, null, null, null, null, null, null, "RATING_DESC", 0, -5);
+            null, null, null, null, null, null, null, null, "RATING_DESC", 0, -5);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        verify(tourService).getAvailableTours(null, null, null, null, null, null, null, "RATING_DESC", 0, -5);
+        verify(tourService).getAvailableTours(null, null, null, null, null, null, null, null, "RATING_DESC", 0, -5);
     }
 
     @Test
@@ -258,13 +258,13 @@ class TourControllerTest {
     @Test
     void getAvailableTours_forwardsDateOnlyFilterRequest() {
         LocalDate date = LocalDate.of(2026, 12, 25);
-        when(tourService.getAvailableTours(null, date, null, null, null, null, null, "RATING_DESC", 1, 6))
+        when(tourService.getAvailableTours(null, date, null, null, null, null, null, null, "RATING_DESC", 1, 6))
                 .thenReturn(TourListResponseDTO.builder().tours(List.of()).build());
 
         ResponseEntity<TourListResponseDTO> response = tourController.getAvailableTours(
-                null, date, null, null, null, null, null, "RATING_DESC", 1, 6);
+            null, date, null, null, null, null, null, null, "RATING_DESC", 1, 6);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        verify(tourService).getAvailableTours(null, date, null, null, null, null, null, "RATING_DESC", 1, 6);
+        verify(tourService).getAvailableTours(null, date, null, null, null, null, null, null, "RATING_DESC", 1, 6);
     }
 }

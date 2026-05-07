@@ -98,6 +98,33 @@ public class TourService {
                 .build();
     }
 
+    public TourListResponseDTO getAvailableTours(
+            String destination,
+            LocalDate startDate,
+            String duration,
+            Integer adults,
+            Integer children,
+            String mealPlan,
+            String tourType,
+            String sortBy,
+            int page,
+            int pageSize
+    ) {
+        return getAvailableTours(
+                destination,
+                startDate,
+                null,
+                duration,
+                adults,
+                children,
+                mealPlan,
+                tourType,
+                sortBy,
+                page,
+                pageSize
+        );
+    }
+
     private Query buildTourQuery(
             String destination,
             LocalDate startDate,
@@ -180,27 +207,9 @@ public class TourService {
         };
     }
 
-<<<<<<< HEAD
-    private Sort applyReviewSortOrder(String sortBy) {
-        if (sortBy == null) {
-            return Sort.by(Sort.Direction.DESC, "rate");
-        }
-        return switch (sortBy) {
-            case "RATING_ASC" -> Sort.by(Sort.Direction.ASC,  "rate");
-            case "NEWEST"     -> Sort.by(Sort.Direction.DESC, "createdAt");
-            case "OLDEST"     -> Sort.by(Sort.Direction.ASC,  "createdAt");
-            default           -> Sort.by(Sort.Direction.DESC, "rate");
-        };
-    }
-
-<<<<<<< Updated upstream
-    // ─────────────────────────────────────────────
-    // Private — mappers
-    // ─────────────────────────────────────────────
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> origin/develop
+        // ─────────────────────────────────────────────
+        // Private — mappers
+        // ─────────────────────────────────────────────
     private TourListResponseDTO.TourItem mapToTourItem(Tour tour) {
         LocalDate earliestDate = tour.getStartDates().stream()
                 .min(Comparator.naturalOrder())
