@@ -16,6 +16,15 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    private static final String FIELD_EMAIL     = "email";
+    private static final String FIELD_PASSWORD  = "password";
+    private static final String INVALID_CREDENTIALS_MSG = "Invalid email or password";
+
+    private static final String KEY_TIMESTAMP = "timestamp";
+    private static final String KEY_STATUS    = "status";
+    private static final String KEY_ERROR     = "error";
+    private static final String KEY_MESSAGE   = "message";
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidation(MethodArgumentNotValidException ex) {
         Map<String, String> fieldErrors = new HashMap<>();
@@ -30,14 +39,14 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleWeakPassword(WeakPasswordException ex) {
         return ResponseEntity.badRequest().body(body(
                 HttpStatus.BAD_REQUEST, ex.getMessage(),
-                Map.of("password", ex.getMessage())));
+                Map.of(FIELD_PASSWORD, ex.getMessage())));
     }
 
     @ExceptionHandler(EmailAlreadyExistsException.class)
     public ResponseEntity<Map<String, Object>> handleDuplicateEmail(EmailAlreadyExistsException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(body(
                 HttpStatus.CONFLICT, "Email already exists",
-                Map.of("email", "An account with this email already exists")));
+                Map.of(FIELD_EMAIL, "An account with this email already exists")));
     }
 
     @ExceptionHandler(InvalidCredentialsException.class)
@@ -45,8 +54,8 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(body(
                 HttpStatus.UNAUTHORIZED, "Wrong password or email",
                 Map.of(
-                        "email",    "Invalid email or password",
-                        "password", "Invalid email or password"
+                        FIELD_EMAIL,    INVALID_CREDENTIALS_MSG,
+                        FIELD_PASSWORD, INVALID_CREDENTIALS_MSG
                 )));
     }
 
@@ -66,19 +75,19 @@ public class GlobalExceptionHandler {
 
     private static Map<String, Object> simpleBody(HttpStatus status, String error, String message) {
         Map<String, Object> b = new LinkedHashMap<>();
-        b.put("timestamp", Instant.now());
-        b.put("status", status.value());
-        b.put("error", error);
-        b.put("message", message);
+        b.put(KEY_TIMESTAMP, Instant.now());
+        b.put(KEY_STATUS, status.value());
+        b.put(KEY_ERROR, error);
+        b.put(KEY_MESSAGE, message);
         return b;
     }
 
     private static Map<String, Object> body(HttpStatus status, String message, Map<String, String> fieldErrors) {
         Map<String, Object> b = new LinkedHashMap<>();
-        b.put("timestamp", Instant.now());
-        b.put("status", status.value());
-        b.put("error", status.getReasonPhrase());
-        b.put("message", message);
+        b.put(KEY_TIMESTAMP, Instant.now());
+        b.put(KEY_STATUS, status.value());
+        b.put(KEY_ERROR, status.getReasonPhrase());
+        b.put(KEY_MESSAGE, message);
         b.put("fieldErrors", fieldErrors);
         return b;
     }

@@ -9,7 +9,9 @@ public final class MealPlanFormatter {
     private MealPlanFormatter() {}
 
     public static String format(String code) {
-        if (code == null) return null;
+        if (code == null) {
+            return null;
+        }
         return switch (code) {
             case "BB" -> "Breakfast (BB)";
             case "HB" -> "Half-board (HB)";

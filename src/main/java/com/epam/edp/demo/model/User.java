@@ -58,6 +58,8 @@ public class User {
         this.role = role;
     }
 
-    public Role getRole() { return role == null ? Role.CUSTOMER : role; }
+    public Role getRole() {
+        return role == null ? Role.CUSTOMER : role;
+    }
 }
 
