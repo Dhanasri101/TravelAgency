@@ -1,0 +1,103 @@
+=== C:\Users\RohitKumarSrivastava\AppData\Local\Packages\Microsoft.DesktopAppInstaller_8wekyb3d8bbwe\LocalState\DiagOutputDir\MongoDB.Server.8.2.7-26-05-05-17-12-50.log ===
+
+
+=== C:\Users\RohitKumarSrivastava\AppData\Local\Packages\Microsoft.DesktopAppInstaller_8wekyb3d8bbwe\LocalState\DiagOutputDir\WinGet-2026-05-05-17-11-08.337.log ===
+2026-05-05 17:11:08.338 [CORE] WinGet, version [1.28.240], activity [{65525066-3C73-4A2E-924E-601EFBA4DC9F}]
+2026-05-05 17:11:08.338 [CORE] Process: winget.exe[3076], Offset: 00007FFA66E90000
+2026-05-05 17:11:08.339 [CORE] OS: Windows.Desktop v10.0.26200.8246
+2026-05-05 17:11:08.339 [CORE] Command line Args: "C:\Users\RohitKumarSrivastava\AppData\Local\Microsoft\WindowsApps\winget.exe" install --id MongoDB.Server --exact --source winget --accept-package-agreements --accept-source-agreements --silent --disable-interactivity
+2026-05-05 17:11:08.339 [CORE] Package: Microsoft.DesktopAppInstaller v1.28.239.0
+2026-05-05 17:11:08.343 [CORE] IsCOMCall:0; Caller: winget-cli
+2026-05-05 17:11:08.353 [CLI ] WinGet invoked with arguments: 'install' '--id' 'MongoDB.Server' '--exact' '--source' 'winget' '--accept-package-agreements' '--accept-source-agreements' '--silent' '--disable-interactivity'
+2026-05-05 17:11:08.353 [CLI ] Found subcommand: install
+2026-05-05 17:11:08.353 [CLI ] Leaf command to execute: root:install
+2026-05-05 17:11:08.354 [CLI ] Executing command: install
+2026-05-05 17:11:08.361 [REPO] Named source requested, found: winget
+2026-05-05 17:11:08.361 [CLI ] Created authentication arguments. Mode: silent, Account: 
+2026-05-05 17:11:08.371 [CORE] Examining extension: PFN = Microsoft.Winget.Source_8wekyb3d8bbwe, ID = IndexDB
+2026-05-05 17:11:08.371 [CORE] Found matching extension.
+2026-05-05 17:11:08.379 [CORE] Examining extension: PFN = Microsoft.Winget.Source_8wekyb3d8bbwe, ID = IndexDB
+2026-05-05 17:11:08.379 [CORE] Found matching extension.
+2026-05-05 17:11:08.404 [REPO] Opening database for ImmutableRead at 'C:\Program Files\WindowsApps\Microsoft.Winget.Source_2026.505.1202.23_neutral__8wekyb3d8bbwe\Public\index.db'
+2026-05-05 17:11:08.404 [REPO] Opened SQLite Index with version [2.0], last write [2026-05-05 16:31:06.000]
+2026-05-05 17:11:08.464 [REPO] Creating new SQLite Index with version [Latest] at ':memory:'
+2026-05-05 17:11:08.467 [REPO] Reading MSI UpgradeCodes
+2026-05-05 17:11:08.483 [REPO] Reading MSI UpgradeCodes
+2026-05-05 17:11:08.843 [REPO] Opening database for ReadWrite at 'C:\Users\RohitKumarSrivastava\AppData\Local\Packages\Microsoft.DesktopAppInstaller_8wekyb3d8bbwe\LocalState\Microsoft.Winget.Source_8wekyb3d8bbwe\installed.db'
+2026-05-05 17:11:08.844 [REPO] Opened SQLite Index with version [1.7], last write [2026-04-20 12:00:33.000]
+2026-05-05 17:11:08.856 [CLI ] Found one app. App id: MongoDB.Server App name: MongoDB
+2026-05-05 17:11:08.860 [REPO] Attempting to open pinning database: C:\Users\RohitKumarSrivastava\AppData\Local\Packages\Microsoft.DesktopAppInstaller_8wekyb3d8bbwe\LocalState\pinning.db
+2026-05-05 17:11:08.861 [CLI ] Manifest fields: Name [MongoDB], Version [8.2.7]
+2026-05-05 17:11:08.879 [CLI ] Generated temp download path: C:\Users\ROHITK~1\AppData\Local\Temp\WinGet\MongoDB.Server.8.2.7\6a326fa3ea7f2013ef28247ea4e68faddaeffc5f19cabed1059e23488986379b
+2026-05-05 17:11:08.879 [CLI ] Installer download headers: 
+2026-05-05 17:11:08.879 [CORE] Downloading to path: C:\Users\ROHITK~1\AppData\Local\Temp\WinGet\MongoDB.Server.8.2.7\6a326fa3ea7f2013ef28247ea4e68faddaeffc5f19cabed1059e23488986379b
+2026-05-05 17:11:08.880 [CORE] Default proxy is not set
+2026-05-05 17:11:08.880 [CORE] DeliveryOptimization downloading from url: https://fastdl.mongodb.org/windows/mongodb-windows-x86_64-8.2.7-signed.msi
+2026-05-05 17:12:48.557 [CORE] Download completed.
+2026-05-05 17:12:50.245 [CORE] Started applying motw to C:\Users\ROHITK~1\AppData\Local\Temp\WinGet\MongoDB.Server.8.2.7\6a326fa3ea7f2013ef28247ea4e68faddaeffc5f19cabed1059e23488986379b with zone: 3
+2026-05-05 17:12:50.256 [CORE] Finished applying motw
+2026-05-05 17:12:50.256 [CLI ] Installer hash verified
+2026-05-05 17:12:50.257 [CORE] Started applying motw to C:\Users\ROHITK~1\AppData\Local\Temp\WinGet\MongoDB.Server.8.2.7\6a326fa3ea7f2013ef28247ea4e68faddaeffc5f19cabed1059e23488986379b with zone: 2
+2026-05-05 17:12:50.260 [CORE] Finished applying motw
+2026-05-05 17:12:50.829 [CLI ] Successfully renamed downloaded installer. Path: C:\Users\ROHITK~1\AppData\Local\Temp\WinGet\MongoDB.Server.8.2.7\mongodb-windows-x86_64-8.2.7-signed.msi
+2026-05-05 17:12:50.829 [REPO] Creating new SQLite Index with version [Latest] at ':memory:'
+2026-05-05 17:12:50.831 [REPO] Reading MSI UpgradeCodes
+2026-05-05 17:12:50.870 [REPO] Reading MSI UpgradeCodes
+2026-05-05 17:12:50.999 [CLI ] Installer args: /quiet /norestart /log "C:\Users\RohitKumarSrivastava\AppData\Local\Packages\Microsoft.DesktopAppInstaller_8wekyb3d8bbwe\LocalState\DiagOutputDir\MongoDB.Server.8.2.7-26-05-05-17-12-50.log" ADDLOCAL=ServerService REBOOT=ReallySuppress
+
+=== C:\Users\RohitKumarSrivastava\AppData\Local\Packages\Microsoft.DesktopAppInstaller_8wekyb3d8bbwe\LocalState\DiagOutputDir\WinGet-2026-05-05-17-10-55.267.log ===
+2026-05-05 17:10:55.268 [CORE] WinGet, version [1.28.240], activity [{B0D3E82E-A7AC-40E4-B35F-C78443D02335}]
+2026-05-05 17:10:55.268 [CORE] Process: winget.exe[32704], Offset: 00007FFA66E90000
+2026-05-05 17:10:55.269 [CORE] OS: Windows.Desktop v10.0.26200.8246
+2026-05-05 17:10:55.269 [CORE] Command line Args: "C:\Users\RohitKumarSrivastava\AppData\Local\Microsoft\WindowsApps\winget.exe" list MongoDB
+2026-05-05 17:10:55.269 [CORE] Package: Microsoft.DesktopAppInstaller v1.28.239.0
+2026-05-05 17:10:55.269 [CORE] IsCOMCall:0; Caller: winget-cli
+2026-05-05 17:10:55.280 [CLI ] WinGet invoked with arguments: 'list' 'MongoDB'
+2026-05-05 17:10:55.281 [CLI ] Found subcommand: list
+2026-05-05 17:10:55.281 [CLI ] Leaf command to execute: root:list
+2026-05-05 17:10:55.282 [CLI ] Executing command: list
+2026-05-05 17:10:55.289 [REPO] Default source requested, multiple sources available, adding all to source references.
+2026-05-05 17:10:55.289 [REPO] Adding to source references msstore
+2026-05-05 17:10:55.289 [CORE] Default proxy is not set
+2026-05-05 17:10:55.289 [REPO] REST HTTP Client helper does not use proxy
+2026-05-05 17:10:55.289 [REPO] Adding to source references winget
+2026-05-05 17:10:55.289 [REPO] Skipping explicit source reference winget-font
+2026-05-05 17:10:55.289 [CLI ] Created authentication arguments. Mode: silentPreferred, Account: 
+2026-05-05 17:10:55.300 [CORE] Examining extension: PFN = Microsoft.Winget.Source_8wekyb3d8bbwe, ID = IndexDB
+2026-05-05 17:10:55.300 [CORE] Found matching extension.
+2026-05-05 17:10:55.304 [REPO] Source `winget` after auto update time [15 mins]; it has been at least 62 mins
+2026-05-05 17:10:55.310 [CORE] Examining extension: PFN = Microsoft.Winget.Source_8wekyb3d8bbwe, ID = IndexDB
+2026-05-05 17:10:55.310 [CORE] Found matching extension.
+2026-05-05 17:10:55.643 [CORE] Downloading to path: C:\Users\ROHITK~1\AppData\Local\Temp\WinGet\Microsoft.Winget.Source_8wekyb3d8bbwe.msix
+2026-05-05 17:10:55.644 [CORE] Started applying motw to C:\Users\ROHITK~1\AppData\Local\Temp\WinGet\Microsoft.Winget.Source_8wekyb3d8bbwe.msix with zone: 3
+2026-05-05 17:10:55.646 [CORE] Finished applying motw
+2026-05-05 17:10:55.646 [CORE] WinINet downloading from url: https://cdn.winget.microsoft.com/cache/source2.msix
+2026-05-05 17:10:56.344 [CORE] Download hash: f9478fd015469d1a8b1a4d608338c912f9cd9bd6f72bab0e779506974ace9e21
+2026-05-05 17:10:56.344 [CORE] Download completed.
+2026-05-05 17:10:56.420 [CORE] Started trust validation of msix at: C:\Users\ROHITK~1\AppData\Local\Temp\WinGet\Microsoft.Winget.Source_8wekyb3d8bbwe.msix
+2026-05-05 17:10:56.468 [CORE] Result for certificate chain validation of Microsoft origin: 0
+2026-05-05 17:10:56.529 [CORE] Result for trust info validation of the msix: 0
+2026-05-05 17:10:56.529 [CORE] Starting AddPackage operation #0: file:///C:/Users/ROHITK~1/AppData/Local/Temp/WinGet/Microsoft.Winget.Source_8wekyb3d8bbwe.msix Options:  { SkipReputationCheck = 1, ExpectedDigests = {} }
+2026-05-05 17:10:56.531 [CORE] Begin waiting for operation #0
+2026-05-05 17:10:56.531 [CORE] Begin blocking for operation #0
+2026-05-05 17:10:57.106 [CORE] Successfully completed #0
+2026-05-05 17:10:57.113 [REPO] Multiple sources available, creating aggregated source.
+2026-05-05 17:10:57.113 [REPO] Adding to aggregated source: msstore
+2026-05-05 17:10:57.117 [REPO] Authentication node not found. Assuming authentication type none.
+2026-05-05 17:10:57.118 [REPO] Adding to aggregated source: winget
+2026-05-05 17:10:57.125 [CORE] Examining extension: PFN = Microsoft.Winget.Source_8wekyb3d8bbwe, ID = IndexDB
+2026-05-05 17:10:57.126 [CORE] Found matching extension.
+2026-05-05 17:10:57.155 [REPO] Opening database for ImmutableRead at 'C:\Program Files\WindowsApps\Microsoft.Winget.Source_2026.505.1202.23_neutral__8wekyb3d8bbwe\Public\index.db'
+2026-05-05 17:10:57.155 [REPO] Opened SQLite Index with version [2.0], last write [2026-05-05 16:31:06.000]
+2026-05-05 17:10:57.180 [REPO] Creating new SQLite Index with version [Latest] at ':memory:'
+2026-05-05 17:10:57.182 [REPO] Reading MSI UpgradeCodes
+2026-05-05 17:10:57.198 [REPO] Reading MSI UpgradeCodes
+2026-05-05 17:10:57.808 [REPO] Opening database for ReadWrite at 'C:\Users\RohitKumarSrivastava\AppData\Local\Packages\Microsoft.DesktopAppInstaller_8wekyb3d8bbwe\LocalState\StoreEdgeFD\installed.db'
+2026-05-05 17:10:57.808 [REPO] Opened SQLite Index with version [1.7], last write [2026-01-06 12:38:35.000]
+2026-05-05 17:10:57.814 [REPO] Opening database for ReadWrite at 'C:\Users\RohitKumarSrivastava\AppData\Local\Packages\Microsoft.DesktopAppInstaller_8wekyb3d8bbwe\LocalState\Microsoft.Winget.Source_8wekyb3d8bbwe\installed.db'
+2026-05-05 17:10:57.814 [REPO] Opened SQLite Index with version [1.7], last write [2026-04-20 12:00:33.000]
+2026-05-05 17:10:57.819 [REPO] Sending http POST request to: https://storeedgefd.dsx.mp.microsoft.com/v9.0/manifestSearch
+2026-05-05 17:10:59.547 [REPO] Response status: 200
+2026-05-05 17:10:59.776 [REPO] Attempting to open pinning database: C:\Users\RohitKumarSrivastava\AppData\Local\Packages\Microsoft.DesktopAppInstaller_8wekyb3d8bbwe\LocalState\pinning.db
+2026-05-05 17:10:59.787 [CLI ] Leaf command succeeded: root:list
+

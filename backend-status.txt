@@ -1,0 +1,4 @@
+TIME=2026-05-05T17:16:26
+PORT_8080=True
+ROOT_STATUS=404
+TOURS_ERROR=The operation has timed out.
