@@ -202,7 +202,8 @@ public class BookingService {
     // ─────────────────────────────────────────────
     // Update booking (Edit)
     // ─────────────────────────────────────────────
-    public Map<String, Object> updateBooking(String bookingId, String authenticatedUserId, UpdateBookingRequestDTO req) {
+    public Map<String, Object> updateBooking(
+            String bookingId, String authenticatedUserId, UpdateBookingRequestDTO req) {
 
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
