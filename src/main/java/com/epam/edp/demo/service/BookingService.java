@@ -3,6 +3,8 @@ package com.epam.edp.demo.service;
 import com.epam.edp.demo.dto.BookedTourListResponseDTO;
 import com.epam.edp.demo.dto.CreateBookingRequestDTO;
 import com.epam.edp.demo.dto.CreateBookingResponseDTO;
+import com.epam.edp.demo.dto.PersonalDetailDTO;
+import com.epam.edp.demo.dto.UpdateBookingRequestDTO;
 import com.epam.edp.demo.enums.BookingState;
 import com.epam.edp.demo.model.Booking;
 import com.epam.edp.demo.model.Tour;
@@ -10,6 +12,7 @@ import com.epam.edp.demo.model.User;
 import com.epam.edp.demo.repository.BookingRepository;
 import com.epam.edp.demo.repository.TourRepository;
 import com.epam.edp.demo.repository.UserRepository;
+import com.epam.edp.demo.util.MealPlanFormatter;
 import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -20,6 +23,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReentrantLock;
@@ -82,18 +86,18 @@ public class BookingService {
         booking.setState(BookingState.BOOKED);
         booking.setTotalPrice(totalPrice);
         booking.setDocumentCount(0);
+        booking.setFreeCancellationDaysBefore(tour.getFreeCancellationDaysBefore());
+
+        // Store tour snapshot so data survives if tour is deleted/re-seeded
+        booking.setTourName(tour.getName());
+        booking.setDestination(tour.getDestination());
+        if (tour.getImageUrls() != null && !tour.getImageUrls().isEmpty()) {
+            booking.setTourImageUrl(tour.getImageUrls().get(0));
+        }
 
         // Map personal details
         if (req.getPersonalDetails() != null) {
-            List<Booking.PersonalDetail> details = req.getPersonalDetails().stream()
-                    .map(pd -> {
-                        Booking.PersonalDetail d = new Booking.PersonalDetail();
-                        d.setFirstName(pd.getFirstName());
-                        d.setLastName(pd.getLastName());
-                        return d;
-                    })
-                    .collect(Collectors.toList());
-            booking.setPersonalDetails(details);
+            booking.setPersonalDetails(mapPersonalDetails(req.getPersonalDetails()));
         }
 
         long updated = tourRepository.incrementBookedCountIfCapacityAvailable(tour.getId());
@@ -192,6 +196,97 @@ public class BookingService {
     }
 
     // ─────────────────────────────────────────────
+    // Update booking (Edit)
+    // ─────────────────────────────────────────────
+    public Map<String, Object> updateBooking(String bookingId, String authenticatedUserId, UpdateBookingRequestDTO req) {
+
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Booking not found: " + bookingId));
+
+        if (!booking.getUserId().equals(authenticatedUserId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "You can only edit your own bookings");
+        }
+
+        if (booking.getState() == BookingState.CANCELLED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Cannot edit a cancelled booking");
+        }
+        if (booking.getState() == BookingState.FINISHED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Cannot edit a finished booking");
+        }
+
+        // Track changes for the confirmation message
+        List<String> changes = new ArrayList<>();
+        Tour tour = tourRepository.findById(booking.getTourId()).orElse(null);
+
+        // Update guests
+        if (req.getGuests() != null) {
+            int oldAdults = booking.getAdults();
+            int oldChildren = booking.getChildren();
+            int newAdults = req.getGuests().getAdult();
+            int newChildren = req.getGuests().getChildren();
+
+            if (oldAdults != newAdults || oldChildren != newChildren) {
+                String oldGuestsStr = formatGuests(booking);
+                booking.setAdults(newAdults);
+                booking.setChildren(newChildren);
+
+                // Update personal details if provided
+                if (req.getPersonalDetails() != null) {
+                    booking.setPersonalDetails(mapPersonalDetails(req.getPersonalDetails()));
+                }
+
+                String newGuestsStr = formatGuests(booking);
+                changes.add("Number of tourists: " + oldGuestsStr + " → " + newGuestsStr);
+            }
+        }
+
+        // Update personal details (even if guests count unchanged)
+        if (req.getPersonalDetails() != null && (req.getGuests() == null ||
+                (booking.getAdults() == req.getGuests().getAdult() && booking.getChildren() == req.getGuests().getChildren()))) {
+            booking.setPersonalDetails(mapPersonalDetails(req.getPersonalDetails()));
+        }
+
+        // Update meal plan
+        if (req.getMealPlan() != null && !req.getMealPlan().equals(booking.getMealPlan())) {
+            String oldMeal = MealPlanFormatter.format(booking.getMealPlan());
+            booking.setMealPlan(req.getMealPlan());
+            String newMeal = MealPlanFormatter.format(req.getMealPlan());
+            changes.add("Meal plan: " + oldMeal + " → " + newMeal);
+        }
+
+        // Update date
+        if (req.getDate() != null && !req.getDate().equals(booking.getDate())) {
+            booking.setDate(req.getDate());
+            changes.add("Start date updated");
+        }
+
+        // Update duration
+        if (req.getDuration() != null && !req.getDuration().equals(booking.getDuration())) {
+            String oldDur = booking.getDuration();
+            booking.setDuration(req.getDuration());
+            changes.add("Duration: " + oldDur + " → " + req.getDuration());
+        }
+
+        // Recalculate total price
+        if (tour != null) {
+            String newPrice = calculateTotalPrice(tour, booking.getDuration(), booking.getMealPlan(), booking.getAdults());
+            booking.setTotalPrice(newPrice);
+        }
+
+        bookingRepository.save(booking);
+
+        // Build response
+        Map<String, Object> response = new java.util.LinkedHashMap<>();
+        response.put("message", "Booking updated successfully");
+        response.put("changes", changes);
+        response.put("bookingId", bookingId);
+        response.put("newTotalPrice", booking.getTotalPrice());
+        return response;
+    }
+
+    // ─────────────────────────────────────────────
     // Scheduled: auto-finish tours past their end date
     // Runs every day at midnight
     // ─────────────────────────────────────────────
@@ -234,20 +329,61 @@ public class BookingService {
                 tourImageUrl = tour.getImageUrls().get(0);
             }
         }
+        // Fallback to stored snapshot on the booking itself
+        if (tourName == null) tourName = booking.getTourName();
+        if (destination == null) destination = booking.getDestination();
+        if (tourImageUrl == null) tourImageUrl = booking.getTourImageUrl();
 
         BookedTourListResponseDTO.TourDetailsDTO tourDetails = buildTourDetailsDTO(booking, tour);
         BookedTourListResponseDTO.TravelAgentDTO travelAgent = buildTravelAgentDTO(tour);
 
+        double rating = (tour != null && tour.getRating() != null) ? tour.getRating() : 0.0;
+
+        // Map personal details for edit form
+        List<BookedTourListResponseDTO.PersonalDetailItem> personalDetailItems = null;
+        if (booking.getPersonalDetails() != null) {
+            personalDetailItems = booking.getPersonalDetails().stream()
+                    .map(pd -> BookedTourListResponseDTO.PersonalDetailItem.builder()
+                            .firstName(pd.getFirstName())
+                            .lastName(pd.getLastName())
+                            .build())
+                    .collect(Collectors.toList());
+        }
+
+        // Calculate free cancellation date
+        String freeCancellationDate = null;
+        if (booking.getDate() != null) {
+            Integer daysBefore = null;
+            if (tour != null && tour.getFreeCancellationDaysBefore() != null) {
+                daysBefore = tour.getFreeCancellationDaysBefore();
+            } else if (booking.getFreeCancellationDaysBefore() != null) {
+                daysBefore = booking.getFreeCancellationDaysBefore();
+            }
+            if (daysBefore != null) {
+                LocalDate freeCancel = booking.getDate().minusDays(daysBefore);
+                freeCancellationDate = freeCancel.toString();
+            }
+        }
+
         return BookedTourListResponseDTO.BookingItem.builder()
                 .id(booking.getId())
+                .tourId(booking.getTourId())
                 .state(booking.getState() != null ? booking.getState().name() : null)
                 .tourImageUrl(tourImageUrl)
                 .name(tourName)
                 .destination(destination)
+                .rating(rating)
                 .tourDetails(tourDetails)
                 .travelAgent(travelAgent)
                 .canceledBy(booking.getCanceledBy())
                 .cancelReason(booking.getCancelReason())
+                .rawDate(booking.getDate() != null ? booking.getDate().toString() : null)
+                .rawDuration(booking.getDuration())
+                .rawMealPlan(booking.getMealPlan())
+                .rawAdults(booking.getAdults())
+                .rawChildren(booking.getChildren())
+                .freeCancellationDate(freeCancellationDate)
+                .personalDetails(personalDetailItems)
                 .build();
     }
 
@@ -260,7 +396,7 @@ public class BookingService {
         }
 
         // Format meal plan
-        String mealPlanFormatted = formatMealPlan(booking.getMealPlan());
+        String mealPlanFormatted = MealPlanFormatter.format(booking.getMealPlan());
 
         // Format guests: "Jhonson Doe (1 adult)" or "Jhonson Doe (2 adults, 1 child)"
         String guestsStr = formatGuests(booking);
@@ -294,6 +430,17 @@ public class BookingService {
                 .build();
     }
 
+    private List<Booking.PersonalDetail> mapPersonalDetails(List<PersonalDetailDTO> dtos) {
+        return dtos.stream()
+                .map(pd -> {
+                    Booking.PersonalDetail d = new Booking.PersonalDetail();
+                    d.setFirstName(pd.getFirstName());
+                    d.setLastName(pd.getLastName());
+                    return d;
+                })
+                .collect(Collectors.toList());
+    }
+
     private String formatGuests(Booking booking) {
         String leadName = "";
         if (booking.getPersonalDetails() != null && !booking.getPersonalDetails().isEmpty()) {
@@ -310,17 +457,6 @@ public class BookingService {
         }
         sb.append(")");
         return sb.toString();
-    }
-
-    private String formatMealPlan(String code) {
-        if (code == null) return null;
-        return switch (code) {
-            case "BB" -> "Breakfast (BB)";
-            case "HB" -> "Half-board (HB)";
-            case "FB" -> "Full-board (FB)";
-            case "AI" -> "All inclusive (AI)";
-            default   -> code;
-        };
     }
 
     private String calculateTotalPrice(Tour tour, String duration, String mealPlan, int adults) {
@@ -371,7 +507,7 @@ public class BookingService {
 
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("MMMM d, yyyy", Locale.ENGLISH);
         String formattedDate = req.getDate().format(fmt);
-        String mealPlanFormatted = formatMealPlan(req.getMealPlan());
+        String mealPlanFormatted = MealPlanFormatter.format(req.getMealPlan());
         int adults = req.getGuests().getAdult();
         String adultStr = adults + " adult" + (adults != 1 ? "s" : "");
 

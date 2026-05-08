@@ -21,14 +21,33 @@ public class BookedTourListResponseDTO {
     @AllArgsConstructor
     public static class BookingItem {
         private String id;
+        private String tourId;
         private String state;
         private String tourImageUrl;
         private String name;
         private String destination;
+        private double rating;
         private TourDetailsDTO tourDetails;
         private TravelAgentDTO travelAgent;
         private String canceledBy;
         private String cancelReason;
+        // Raw fields for edit form
+        private String rawDate;
+        private String rawDuration;
+        private String rawMealPlan;
+        private int rawAdults;
+        private int rawChildren;
+        private String freeCancellationDate;
+        private java.util.List<PersonalDetailItem> personalDetails;
+    }
+
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class PersonalDetailItem {
+        private String firstName;
+        private String lastName;
     }
 
     @Getter

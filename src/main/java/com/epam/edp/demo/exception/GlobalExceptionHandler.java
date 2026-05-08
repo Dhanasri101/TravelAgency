@@ -52,11 +52,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(AccountLockedException.class)
     public ResponseEntity<Map<String, Object>> handleLocked(AccountLockedException ex) {
-        Map<String, Object> b = new LinkedHashMap<>();
-        b.put("timestamp", Instant.now());
-        b.put("status", HttpStatus.LOCKED.value());
-        b.put("error", "Account locked");
-        b.put("message",
+        Map<String, Object> b = simpleBody(HttpStatus.LOCKED, "Account locked",
                 "Your account is temporarily locked due to multiple failed login attempts. Please try again later.");
         b.put("retryAfterSeconds", ex.getRetryAfterSeconds());
         return ResponseEntity.status(HttpStatus.LOCKED).body(b);
@@ -64,12 +60,17 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(UnauthenticatedException.class)
     public ResponseEntity<Map<String, Object>> handleUnauthenticated(UnauthenticatedException ex) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(simpleBody(HttpStatus.UNAUTHORIZED, "Unauthenticated", ex.getMessage()));
+    }
+
+    private static Map<String, Object> simpleBody(HttpStatus status, String error, String message) {
         Map<String, Object> b = new LinkedHashMap<>();
         b.put("timestamp", Instant.now());
-        b.put("status", HttpStatus.UNAUTHORIZED.value());
-        b.put("error", "Unauthenticated");
-        b.put("message", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(b);
+        b.put("status", status.value());
+        b.put("error", error);
+        b.put("message", message);
+        return b;
     }
 
     private static Map<String, Object> body(HttpStatus status, String message, Map<String, String> fieldErrors) {

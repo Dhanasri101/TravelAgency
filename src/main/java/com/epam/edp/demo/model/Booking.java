@@ -39,6 +39,10 @@ public class Booking {
     private BookingState state;
     private String totalPrice;
     private int documentCount = 0;
+    private Integer freeCancellationDaysBefore;
+    private String tourName;
+    private String destination;
+    private String tourImageUrl;
     private String canceledBy;
     private String cancelReason;
 

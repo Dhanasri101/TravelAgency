@@ -103,6 +103,7 @@ public class UserService {
         return new SignInResponseDTO(issued.token(), saved.getRole(), userName, saved.getEmail(), issued.expiresAt());
     }
 
+    @SuppressWarnings("null")
     public User requireById(String userId) {
         return repository.findById(userId).orElseThrow(InvalidCredentialsException::new);
     }

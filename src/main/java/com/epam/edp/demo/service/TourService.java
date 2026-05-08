@@ -1,4 +1,5 @@
 package com.epam.edp.demo.service;
+import com.epam.edp.demo.util.MealPlanFormatter;
 import com.epam.edp.demo.dto.DestinationListResponseDTO;
 import com.epam.edp.demo.dto.ReviewListResponseDTO;
 import com.epam.edp.demo.dto.TourDetailResponseDTO;
@@ -207,9 +208,21 @@ public class TourService {
         };
     }
 
-        // ─────────────────────────────────────────────
-        // Private — mappers
-        // ─────────────────────────────────────────────
+    private Sort applyReviewSortOrder(String sortBy) {
+        if (sortBy == null) {
+            return Sort.by(Sort.Direction.DESC, "rate");
+        }
+        return switch (sortBy) {
+            case "RATING_ASC" -> Sort.by(Sort.Direction.ASC,  "rate");
+            case "NEWEST"     -> Sort.by(Sort.Direction.DESC, "createdAt");
+            case "OLDEST"     -> Sort.by(Sort.Direction.ASC,  "createdAt");
+            default           -> Sort.by(Sort.Direction.DESC, "rate");
+        };
+    }
+
+    // ─────────────────────────────────────────────
+    // Private — mappers
+    // ─────────────────────────────────────────────
     private TourListResponseDTO.TourItem mapToTourItem(Tour tour) {
         LocalDate earliestDate = tour.getStartDates().stream()
                 .min(Comparator.naturalOrder())
@@ -225,7 +238,7 @@ public class TourService {
                 : null;
 
         List<String> formattedMealPlans = tour.getMealPlans().stream()
-                .map(this::formatMealPlan)
+                .map(MealPlanFormatter::format)
                 .collect(Collectors.toList());
 
         return TourListResponseDTO.TourItem.builder()
@@ -246,16 +259,6 @@ public class TourService {
 
 
 
-    private String formatMealPlan(String code) {
-        return switch (code) {
-            case "BB" -> "Breakfast (BB)";
-            case "HB" -> "Half-board (HB)";
-            case "FB" -> "Full-board (FB)";
-            case "AI" -> "All inclusive (AI)";
-            default   -> code;
-        };
-    }
-
     public TourDetailResponseDTO getTourById(String id) {
         Tour tour = tourRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(
@@ -273,7 +276,7 @@ public class TourService {
 
         List<String> formattedMealPlans = tour.getMealPlans() == null ? List.of() :
                 tour.getMealPlans().stream()
-                        .map(this::formatMealPlan)
+                        .map(MealPlanFormatter::format)
                         .collect(Collectors.toList());
 
         TourDetailResponseDTO.GuestQuantityDTO guestQuantityDTO = null;
