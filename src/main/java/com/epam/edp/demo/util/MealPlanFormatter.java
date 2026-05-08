@@ -8,8 +8,7 @@ public final class MealPlanFormatter {
 
     private MealPlanFormatter() {}
 
-    public static String format(String code) {
-        if (code == null) {
+    public static String format(String code) {if (code == null) {
             return null;
         }
         return switch (code) {
