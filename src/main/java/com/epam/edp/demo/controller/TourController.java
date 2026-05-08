@@ -65,6 +65,33 @@ public class TourController {
         return ResponseEntity.ok(response);
     }
 
+    public ResponseEntity<TourListResponseDTO> getAvailableTours(
+            String destination,
+            LocalDate startDate,
+            String duration,
+            Integer adults,
+            Integer children,
+            String mealPlan,
+            String tourType,
+            String sortBy,
+            int page,
+            int pageSize
+    ) {
+        return getAvailableTours(
+                destination,
+                startDate,
+                null,
+                duration,
+                adults,
+                children,
+                mealPlan,
+                tourType,
+                sortBy,
+                page,
+                pageSize
+        );
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<TourDetailResponseDTO> getTourById(@PathVariable String id) {
         return ResponseEntity.ok(tourService.getTourById(id));

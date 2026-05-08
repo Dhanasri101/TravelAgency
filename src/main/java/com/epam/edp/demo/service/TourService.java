@@ -98,6 +98,33 @@ public class TourService {
                 .build();
     }
 
+    public TourListResponseDTO getAvailableTours(
+            String destination,
+            LocalDate startDate,
+            String duration,
+            Integer adults,
+            Integer children,
+            String mealPlan,
+            String tourType,
+            String sortBy,
+            int page,
+            int pageSize
+    ) {
+        return getAvailableTours(
+                destination,
+                startDate,
+                null,
+                duration,
+                adults,
+                children,
+                mealPlan,
+                tourType,
+                sortBy,
+                page,
+                pageSize
+        );
+    }
+
     private Query buildTourQuery(
             String destination,
             LocalDate startDate,
