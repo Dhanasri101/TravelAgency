@@ -35,6 +35,7 @@ export default function HomePage() {
       const params = new URLSearchParams();
       if (filters.destination) params.set('destination', filters.destination);
       if (filters.startDate) params.set('startDate', filters.startDate);
+      if (filters.endDate) params.set('endDate', filters.endDate);
       if (filters.duration) params.set('duration', filters.duration);
       if (filters.adults != null) params.set('adults', filters.adults);
       if (filters.children != null) params.set('children', filters.children);
@@ -68,6 +69,7 @@ export default function HomePage() {
     const filters = {
       destination,
       startDate: startDate ? startDate.toISOString().split('T')[0] : undefined,
+      endDate: endDate ? endDate.toISOString().split('T')[0] : undefined,
       duration: selectedDurations.length === 1 ? selectedDurations[0] : undefined,
       adults,
       children: childCount,

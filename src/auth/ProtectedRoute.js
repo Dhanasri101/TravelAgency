@@ -9,7 +9,7 @@ export default function ProtectedRoute({ children }) {
   if (loading) return null;
 
   if (!token || !user) {
-    return <Navigate to="/sign-in" state={{ from: location.pathname }} replace />;
+    return <Navigate to="/sign-in" state={{ from: `${location.pathname}${location.search}${location.hash}` }} replace />;
   }
   return <>{children}</>;
 }

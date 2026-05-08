@@ -12,6 +12,10 @@
   animation: bm-fade-in 0.18s ease;
 }
 
+.bm-overlay-center {
+  align-items: center;
+}
+
 @keyframes bm-fade-in {
   from { opacity: 0; }
   to   { opacity: 1; }
@@ -72,6 +76,71 @@
   font-weight: 700;
   color: #0d2b3e;
   line-height: 1.25;
+}
+
+.bm-auth-modal {
+  width: 480px;
+  gap: 24px;
+  padding: 28px 24px 22px;
+}
+
+.bm-auth-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-right: 40px;
+}
+
+.bm-auth-brand-text {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #0c6d8f;
+}
+
+.bm-auth-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.bm-auth-title {
+  margin: 0;
+  font-size: 1.02rem;
+  line-height: 1.5;
+  font-weight: 700;
+  color: #16364a;
+}
+
+.bm-auth-subtitle {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: #5c7d90;
+}
+
+.bm-auth-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.bm-auth-secondary {
+  width: 100%;
+  background: #fff;
+  color: #0c6d8f;
+  border: 2px solid #0c6d8f;
+  border-radius: 10px;
+  padding: 13px 15px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.bm-auth-secondary:hover {
+  background: #eef8fc;
+  border-color: #095a76;
+  color: #095a76;
 }
 
 .bm-rating {
@@ -277,6 +346,9 @@
     padding: 24px 16px;
   }
   .bm-personal-row { grid-template-columns: 1fr; }
+  .bm-auth-modal {
+    padding: 24px 16px 18px;
+  }
 }
 
 /* ── guests stepper dropdown ──────────────────────────────────── */

@@ -50,6 +50,7 @@ export default function Header({ activeTab, onTabChange }) {
   const location = useLocation();
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const currentPath = `${location.pathname}${location.search}${location.hash}`;
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -107,7 +108,10 @@ export default function Header({ activeTab, onTabChange }) {
           </button>
           <button
             className={`nav-tab ${location.pathname === '/my-tours' ? 'active' : ''}`}
-            onClick={() => { onTabChange && onTabChange('my'); navigate('/my-tours'); }}
+            onClick={() => {
+              onTabChange && onTabChange('my');
+              navigate(user ? '/my-tours' : '/sign-in', user ? undefined : { state: { from: '/my-tours' } });
+            }}
           >
             My tours
           </button>
@@ -157,7 +161,7 @@ export default function Header({ activeTab, onTabChange }) {
             <button
               className="user-btn"
               aria-label="User account"
-              onClick={() => navigate('/sign-in', { state: { from: location.pathname } })}
+              onClick={() => navigate('/sign-in', { state: { from: currentPath } })}
             >
               <UserCircleIcon />
             </button>

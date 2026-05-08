@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import './TourDetail.css';
 import BookingModal from './BookingModal';
-import AuthRequiredModal from './AuthRequiredModal';
-import { useAuth } from '../auth/AuthContext';
 
 /* ── icons ───────────────────────────────────────────────────── */
 function PinIcon() {
@@ -144,7 +142,6 @@ export default function TourDetail({
   reviewsLoading,
   onBack,
 }) {
-  const { user } = useAuth();
   const durations = tour.durations ?? [];
   const startDates = tour.startDates ?? [];
   const mealPlans = tour.mealPlans ?? [];
@@ -155,15 +152,6 @@ export default function TourDetail({
   const [selectedAdults, setSelectedAdults] = useState(1);
   const [selectedMeal, setSelectedMeal] = useState(mealPlans[0] ?? '');
   const [showBooking, setShowBooking] = useState(false);
-  const [showAuthRequired, setShowAuthRequired] = useState(false);
-
-  const handleBookClick = () => {
-    if (!user) {
-      setShowAuthRequired(true);
-      return;
-    }
-    setShowBooking(true);
-  };
 
   useEffect(() => { window.scrollTo(0, 0); }, [tour.id]);
 
@@ -390,7 +378,7 @@ export default function TourDetail({
                 Total price: <strong>${totalPrice.toLocaleString()}</strong>
               </div>
 
-              <button type="button" className="btn-book-tour" onClick={handleBookClick}>Book the tour</button>
+              <button type="button" className="btn-book-tour" onClick={() => setShowBooking(true)}>Book the tour</button>
             </div>
           </div>
         </div>
@@ -466,10 +454,6 @@ export default function TourDetail({
         </div>
 
       </div>
-
-      {showAuthRequired && (
-        <AuthRequiredModal onClose={() => setShowAuthRequired(false)} />
-      )}
 
       {showBooking && (
         <BookingModal tour={tour} onClose={() => setShowBooking(false)} />

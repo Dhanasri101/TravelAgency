@@ -2,8 +2,6 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './TourCard.css';
 import BookingModal from './BookingModal';
-import AuthRequiredModal from './AuthRequiredModal';
-import { useAuth } from '../auth/AuthContext';
 
 function StarIcon() {
   return (
@@ -85,10 +83,8 @@ const LOCAL_IMAGES = [
 
 export default function TourCard({ tour, index }) {
   const navigate = useNavigate();
-  const { user } = useAuth();
   const idx = index ?? 0;
   const [showBooking, setShowBooking] = useState(false);
-  const [showAuthRequired, setShowAuthRequired] = useState(false);
 
   const imageUrl = idx < LOCAL_IMAGES.length
     ? LOCAL_IMAGES[idx]
@@ -102,14 +98,6 @@ export default function TourCard({ tour, index }) {
 
   const handleSeeDetails = () => {
     if (tour?.id != null) navigate(`/tours/${tour.id}`);
-  };
-
-  const handleBookClick = () => {
-    if (!user) {
-      setShowAuthRequired(true);
-      return;
-    }
-    setShowBooking(true);
   };
 
   return (
@@ -174,15 +162,11 @@ export default function TourCard({ tour, index }) {
           <button type="button" className="btn-outline" onClick={handleSeeDetails}>
             See details
           </button>
-          <button type="button" className="btn-solid" onClick={handleBookClick}>
+          <button type="button" className="btn-solid" onClick={() => setShowBooking(true)}>
             Book the tour
           </button>
         </div>
       </div>
-
-      {showAuthRequired && (
-        <AuthRequiredModal onClose={() => setShowAuthRequired(false)} />
-      )}
 
       {showBooking && (
         <BookingModal tour={tour} onClose={() => setShowBooking(false)} />

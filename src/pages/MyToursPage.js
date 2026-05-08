@@ -2,10 +2,14 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { client } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import Header from '../components/Header';
+import EditBookingModal from '../components/EditBookingModal';
+import ConfirmChangesModal from '../components/ConfirmChangesModal';
+import CancelBookingModal from '../components/CancelBookingModal';
 import './MyToursPage.css';
 
 const STATUS_TABS = ['All tours', 'Booked', 'Confirmed', 'Started', 'Finished', 'Cancelled'];
 const STEPS = ['Booked', 'Confirmed', 'Started', 'Finished'];
+const CANCELLED_STEPS = ['Booked', 'Confirmed', 'Cancelled'];
 
 function PinIcon() {
   return (
@@ -71,12 +75,61 @@ function PhoneIcon() {
     </svg>
   );
 }
+function WhatsAppIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="#25D366">
+      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+    </svg>
+  );
+}
+function MessengerIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="#0084FF">
+      <path d="M12 0C5.373 0 0 4.974 0 11.111c0 3.498 1.744 6.614 4.469 8.654V24l4.088-2.242c1.092.3 2.246.464 3.443.464 6.627 0 12-4.974 12-11.111S18.627 0 12 0zm1.191 14.963l-3.055-3.26-5.963 3.26L10.732 8l3.131 3.259L19.752 8l-6.561 6.963z"/>
+    </svg>
+  );
+}
+function TelegramIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="#0088CC">
+      <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+    </svg>
+  );
+}
+function getMessengerIcon(messenger) {
+  if (!messenger) return null;
+  const type = messenger.toLowerCase();
+  if (type.includes('whatsapp')) return <WhatsAppIcon />;
+  if (type.includes('messenger')) return <MessengerIcon />;
+  if (type.includes('telegram')) return <TelegramIcon />;
+  return <MessengerIcon />; // default
+}
 function CheckIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="20 6 9 17 4 12"/>
     </svg>
   );
+}
+
+function CrossIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="6" x2="6" y2="18"/>
+      <line x1="6" y1="6" x2="18" y2="18"/>
+    </svg>
+  );
+}
+
+function getCanceledByLabel(canceledBy, currentUserId) {
+  if (!canceledBy) return 'Tourist';
+  if (currentUserId && canceledBy === currentUserId) return 'Tourist';
+
+  const normalized = String(canceledBy).toLowerCase();
+  if (normalized.includes('tourist') || normalized.includes('user')) return 'Tourist';
+  if (normalized.includes('agent')) return 'Travel agent';
+
+  return 'Travel agent';
 }
 
 function getStepIndex(state) {
@@ -88,10 +141,30 @@ function ProgressStepper({ state }) {
   const current = getStepIndex(state);
   const isCancelled = state === 'CANCELLED';
 
+  if (isCancelled) {
+    return (
+      <div className="mt-stepper">
+        {CANCELLED_STEPS.map((step, i) => {
+          const done = i < CANCELLED_STEPS.length - 1;
+          const cancelled = i === CANCELLED_STEPS.length - 1;
+          return (
+            <div key={step} className={`mt-step ${done ? 'done' : ''} ${cancelled ? 'cancelled' : ''} ${i === 0 ? 'first' : ''} ${i === CANCELLED_STEPS.length - 1 ? 'last' : ''}`}>
+              <span className="mt-step-content">
+                {done && <CheckIcon />}
+                {cancelled && <CrossIcon />}
+                <span className="mt-step-label">{step}</span>
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
   return (
     <div className="mt-stepper">
       {STEPS.map((step, i) => {
-        const done = !isCancelled && i <= current;
+        const done = i <= current;
         return (
           <div key={step} className={`mt-step ${done ? 'done' : ''} ${i === 0 ? 'first' : ''} ${i === STEPS.length - 1 ? 'last' : ''}`}>
             <span className="mt-step-content">
@@ -105,11 +178,13 @@ function ProgressStepper({ state }) {
   );
 }
 
-function BookingCard({ booking, onCancel }) {
+function BookingCard({ booking, onCancel, onEdit, currentUserId }) {
   const { tourDetails, travelAgent } = booking;
+  const canceledByLabel = getCanceledByLabel(booking.canceledBy, currentUserId);
+  const cancelReason = booking.cancelReason?.trim() || '-';
 
   return (
-    <div className="mt-card">
+    <div className={`mt-card ${booking.state === 'CANCELLED' ? 'mt-card-cancelled' : ''}`}>
       <ProgressStepper state={booking.state} />
 
       <div className="mt-card-body">
@@ -152,7 +227,7 @@ function BookingCard({ booking, onCancel }) {
                 {travelAgent.name && <div className="mt-detail-row"><AgentIcon /><span>{travelAgent.name}</span></div>}
                 {travelAgent.email && <div className="mt-detail-row"><EmailIcon /><span>{travelAgent.email}</span></div>}
                 {travelAgent.phone && <div className="mt-detail-row"><PhoneIcon /><span>{travelAgent.phone}</span></div>}
-                {travelAgent.messenger && <div className="mt-detail-row"><span className="mt-messenger-icon">💬</span><span>{travelAgent.messenger}</span></div>}
+                {travelAgent.messenger && <div className="mt-detail-row">{getMessengerIcon(travelAgent.messenger)}<span>{travelAgent.messenger}</span></div>}
               </>
             ) : (
               <div className="mt-detail-row"><span className="mt-no-agent">Not assigned yet</span></div>
@@ -165,15 +240,21 @@ function BookingCard({ booking, onCancel }) {
       {booking.state !== 'CANCELLED' && booking.state !== 'FINISHED' && (
         <div className="mt-card-actions">
           <button className="mt-btn-outline" onClick={() => onCancel(booking.id)}>Cancel</button>
-          <button className="mt-btn-outline">Edit</button>
+          <button className="mt-btn-outline" onClick={() => onEdit(booking)}>Edit</button>
           <button className="mt-btn-solid">Upload documents</button>
         </div>
       )}
 
       {booking.state === 'CANCELLED' && (
         <div className="mt-cancelled-info">
-          <span className="mt-cancelled-badge">Cancelled</span>
-          {booking.cancelReason && <span className="mt-cancel-reason">Reason: {booking.cancelReason}</span>}
+          <div className="mt-cancel-row">
+            <span className="mt-cancel-label">Cancelled by:</span>
+            <span className="mt-cancel-value">{canceledByLabel}</span>
+          </div>
+          <div className="mt-cancel-row">
+            <span className="mt-cancel-label">Reason:</span>
+            <span className="mt-cancel-value">{cancelReason}</span>
+          </div>
         </div>
       )}
     </div>
@@ -186,6 +267,10 @@ export default function MyToursPage() {
   const [statusFilter, setStatusFilter] = useState('All tours');
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [editingBooking, setEditingBooking] = useState(null);
+  const [confirmData, setConfirmData] = useState(null);
+  const [lastEditedBooking, setLastEditedBooking] = useState(null);
+  const [cancellingBooking, setCancellingBooking] = useState(null);
 
   const fetchBookings = useCallback(async () => {
     if (!user?.id) return;
@@ -205,14 +290,50 @@ export default function MyToursPage() {
     fetchBookings();
   }, [fetchBookings]);
 
-  const handleCancel = async (bookingId) => {
-    if (!window.confirm('Are you sure you want to cancel this booking?')) return;
+  const handleCancel = (bookingId) => {
+    const booking = bookings.find(b => b.id === bookingId);
+    if (booking) {
+      setCancellingBooking(booking);
+    }
+  };
+
+  const handleConfirmCancelBooking = async () => {
+    if (!cancellingBooking) return;
     try {
-      await client.patch(`/bookings/${bookingId}/cancel`);
+      await client.patch(`/bookings/${cancellingBooking.id}/cancel`);
+      setCancellingBooking(null);
       fetchBookings();
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to cancel booking');
+      setCancellingBooking(null);
     }
+  };
+
+  const handleKeepBooking = () => {
+    setCancellingBooking(null);
+  };
+
+  const handleEdit = (booking) => {
+    setEditingBooking(booking);
+  };
+
+  const handleEditSaved = (response) => {
+    setLastEditedBooking(editingBooking);
+    setEditingBooking(null);
+    // Show confirmation modal with changes
+    setConfirmData(response);
+  };
+
+  const handleConfirmChanges = () => {
+    setConfirmData(null);
+    fetchBookings(); // Refresh the list
+  };
+
+  const handleDeclineChanges = () => {
+    setConfirmData(null);
+    // Just close — the changes are already saved on backend
+    // In a real app you might revert here
+    fetchBookings();
   };
 
   const filtered = statusFilter === 'All tours'
@@ -247,12 +368,39 @@ export default function MyToursPage() {
         ) : (
           <div className="mt-bookings-grid">
             {filtered.map(booking => (
-              <BookingCard key={booking.id} booking={booking} onCancel={handleCancel} />
+              <BookingCard key={booking.id} booking={booking} onCancel={handleCancel} onEdit={handleEdit} currentUserId={user?.id} />
             ))}
           </div>
         )}
       </div>
+
+      {/* Cancel Booking Modal */}
+      {cancellingBooking && (
+        <CancelBookingModal
+          booking={cancellingBooking}
+          onConfirmCancel={handleConfirmCancelBooking}
+          onKeep={handleKeepBooking}
+        />
+      )}
+
+      {/* Edit Booking Modal */}
+      {editingBooking && (
+        <EditBookingModal
+          booking={editingBooking}
+          onClose={() => setEditingBooking(null)}
+          onSaved={handleEditSaved}
+        />
+      )}
+
+      {/* Confirm Changes Modal */}
+      {confirmData && (
+        <ConfirmChangesModal
+          booking={lastEditedBooking || confirmData}
+          changes={confirmData.changes || []}
+          onConfirm={handleConfirmChanges}
+          onDecline={handleDeclineChanges}
+        />
+      )}
     </div>
   );
 }
-

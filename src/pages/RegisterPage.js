@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import SplitLayout from '../components/SplitLayout';
 import TextField from '../components/TextField';
 import PasswordField from '../components/PasswordField';
@@ -14,6 +14,9 @@ const empty = {
 
 export default function RegisterPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const state = location.state || {};
+  const redirectTo = typeof state.from === 'string' && state.from.trim() ? state.from : '/';
   const [form, setForm] = useState(empty);
   const [fieldErrors, setFieldErrors] = useState({});
   const [touched, setTouched] = useState({});
@@ -112,7 +115,7 @@ export default function RegisterPage() {
         password: form.password,
       });
       navigate('/sign-in', {
-        state: { justRegistered: true, email: form.email.trim() },
+        state: { justRegistered: true, email: form.email.trim(), from: redirectTo },
         replace: true,
       });
     } catch (err) {
@@ -204,7 +207,7 @@ export default function RegisterPage() {
       </form>
 
       <div className="form-footer">
-        Already have an account? <Link to="/sign-in">Login</Link> instead
+        Already have an account? <Link to="/sign-in" state={{ from: redirectTo }}>Login</Link> instead
       </div>
     </SplitLayout>
   );

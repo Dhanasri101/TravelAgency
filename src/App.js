@@ -1,5 +1,5 @@
 import React from 'react';
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Route, Routes } from 'react-router-dom';
 import RegisterPage from './pages/RegisterPage';
 import SignInPage from './pages/SignInPage';
 import HomePage from './pages/HomePage';
@@ -45,7 +45,7 @@ export default function App() {
       />
       <Route
         path="*"
-        element={<Navigate to="/" replace />}
+        element={<HomePage />}
       />
     </Routes>
   );

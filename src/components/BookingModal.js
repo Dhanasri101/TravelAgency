@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import './BookingModal.css';
 import { client } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
@@ -60,6 +61,18 @@ function CloseIcon() {
   );
 }
 
+function LuggageIcon() {
+  return (
+    <svg width="34" height="34" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="6" y="6" width="12" height="15" rx="2" stroke="#0c6d8f" strokeWidth="1.8"/>
+      <path d="M9 6V4.5A1.5 1.5 0 0 1 10.5 3h3A1.5 1.5 0 0 1 15 4.5V6" stroke="#0c6d8f" strokeWidth="1.8"/>
+      <line x1="6" y1="11" x2="18" y2="11" stroke="#0c6d8f" strokeWidth="1.4"/>
+      <line x1="9" y1="21" x2="9" y2="23" stroke="#0c6d8f" strokeWidth="1.8" strokeLinecap="round"/>
+      <line x1="15" y1="21" x2="15" y2="23" stroke="#0c6d8f" strokeWidth="1.8" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
 /* ── helpers ─────────────────────────────────────────────────── */
 function fmtDate(dateVal) {
   if (!dateVal) return '';
@@ -91,13 +104,19 @@ function calcTotal(tourDetail, duration, mealPlan, adults) {
 /* ══════════════════════════════════════════════════════════════ */
 export default function BookingModal({ tour, onClose }) {
   const { user } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const currentPath = `${location.pathname}${location.search}${location.hash}`;
 
   /* ── fetch full tour details ─────────────────────────────── */
   const [tourDetail, setTourDetail] = useState(null);
   const [fetchLoading, setFetchLoading] = useState(true);
 
   useEffect(() => {
-    if (!tour?.id) return;
+    if (!user || !tour?.id) {
+      setFetchLoading(false);
+      return;
+    }
     let cancelled = false;
     async function load() {
       try {
@@ -114,7 +133,7 @@ export default function BookingModal({ tour, onClose }) {
     }
     load();
     return () => { cancelled = true; };
-  }, [tour?.id]);
+  }, [tour?.id, user]);
 
   /* ── build date+duration combo options ───────────────────── */
   const comboOptions = React.useMemo(() => {
@@ -225,6 +244,45 @@ export default function BookingModal({ tour, onClose }) {
   /* If booking succeeded, show only the confirmation modal */
   if (confirmData) {
     return <BookingConfirmation data={confirmData} onClose={onClose} />;
+  }
+
+  if (!user) {
+    return (
+      <div className="bm-overlay bm-overlay-center" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+        <div className="bm-modal bm-auth-modal" role="dialog" aria-modal="true">
+          <button className="bm-close" onClick={onClose} aria-label="Close">
+            <CloseIcon />
+          </button>
+
+          <div className="bm-auth-brand">
+            <LuggageIcon />
+            <span className="bm-auth-brand-text">Travel Agency</span>
+          </div>
+
+          <div className="bm-auth-copy">
+            <p className="bm-auth-title">To book a tour please sign in or create an account</p>
+            <p className="bm-auth-subtitle">Continue to book <strong>{tour.name}</strong>{tour.destination ? ` in ${tour.destination}` : ''}.</p>
+          </div>
+
+          <div className="bm-auth-actions">
+            <button
+              className="bm-submit"
+              type="button"
+              onClick={() => navigate('/sign-in', { state: { from: currentPath } })}
+            >
+              Sign in
+            </button>
+            <button
+              className="bm-auth-secondary"
+              type="button"
+              onClick={() => navigate('/register', { state: { from: currentPath } })}
+            >
+              Create an account
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

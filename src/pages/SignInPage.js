@@ -13,6 +13,7 @@ export default function SignInPage() {
   const navigate = useNavigate();
   const { loginWith } = useAuth();
   const state = location.state || {};
+  const redirectTo = typeof state.from === 'string' && state.from.trim() ? state.from : '/';
 
   const [showToast, setShowToast] = useState(Boolean(state.justRegistered));
   const [email, setEmail] = useState(state.email || '');
@@ -52,7 +53,7 @@ export default function SignInPage() {
     try {
       const data = await signIn({ email: email.trim(), password });
       await loginWith(data);
-      navigate('/', { replace: true });
+      navigate(redirectTo, { replace: true });
     } catch (err) {
       if (err.status === 423) {
         setLockedBanner(
@@ -124,7 +125,7 @@ export default function SignInPage() {
       </form>
 
       <div className="form-footer">
-        Don&rsquo;t have an account? <Link to="/register">Create an account</Link>
+        Don&rsquo;t have an account? <Link to="/register" state={{ from: redirectTo }}>Create an account</Link>
       </div>
     </SplitLayout>
   );
