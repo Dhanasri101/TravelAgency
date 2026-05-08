@@ -29,3 +29,11 @@ nbdist/
 
 ### Java classes ###
 target/
+
+
+### logs ###
+backend-embedded.log.*
+backend-live.log.*
+backend-start.log.*
+backend-start-plan.log.*
+backend-status.log.*

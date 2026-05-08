@@ -306,6 +306,27 @@ class UserServiceSignUpTest {
         assertEquals(Role.CUSTOMER, created.getRole());
     }
 
+    @Test
+    void signUp_rejectsPasswordContainingWholeEmailWhenAtMissing_currentBehavior() {
+        SignUpRequestDTO req = request("Jane", "Doe", "broken-email", "safeBROKEN-EMAIL#2026");
+
+        WeakPasswordException ex = assertThrows(WeakPasswordException.class, () -> userService.signUp(req));
+
+        assertEquals("Password must not contain your email", ex.getMessage());
+        verify(repository, never()).existsByEmail(anyString());
+        verifyNoInteractions(passwordEncoder);
+    }
+
+    @Test
+    void signUp_usesLowercasedTrimmedEmailForDuplicateCheck() {
+        SignUpRequestDTO req = request("Jane", "Doe", "  MIXED.CASE@Example.Com  ", "Strong#2026");
+        when(repository.existsByEmail("mixed.case@example.com")).thenReturn(true);
+
+        assertThrows(EmailAlreadyExistsException.class, () -> userService.signUp(req));
+
+        verify(repository).existsByEmail("mixed.case@example.com");
+    }
+
     private static SignUpRequestDTO request(String firstName, String lastName, String email, String password) {
         SignUpRequestDTO req = new SignUpRequestDTO();
         req.setFirstName(firstName);
