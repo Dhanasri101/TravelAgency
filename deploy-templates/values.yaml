@@ -124,4 +124,3 @@ env:
         secretKeyRef:
           name: run23team2-secret
           key: jwt-secret
-
