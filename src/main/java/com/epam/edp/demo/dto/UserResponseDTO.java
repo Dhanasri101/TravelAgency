@@ -15,7 +15,8 @@ public record UserResponseDTO(
         Instant createdAt
 ) {
     public static UserResponseDTO from(User user) {
-        return new UserResponseDTO(user.getId(), user.getFirstName(), user.getLastName(), user.getEmail(), user.getRole(), user.getCreatedAt());
+        return new UserResponseDTO(
+                user.getId(), user.getFirstName(), user.getLastName(),
+                user.getEmail(), user.getRole(), user.getCreatedAt());
     }
 }
-

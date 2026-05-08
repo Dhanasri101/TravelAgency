@@ -8,6 +8,7 @@ public class AccountLockedException extends RuntimeException {
         this.retryAfterSeconds = retryAfterSeconds;
     }
 
-    public long getRetryAfterSeconds() { return retryAfterSeconds; }
+    public long getRetryAfterSeconds() {
+        return retryAfterSeconds;
+    }
 }
-

@@ -29,6 +29,18 @@ import java.util.stream.Collectors;
 @Service
 public class TourService {
 
+    private static final int    MIN_QUERY_LENGTH  = 3;
+    private static final double ROUND_FACTOR      = 100.0;
+
+    private static final String FIELD_DESTINATION = "destination";
+    private static final String FIELD_START_DATES = "startDates";
+    private static final String FIELD_RATING      = "rating";
+    private static final String FIELD_BASE_PRICE  = "basePrice";
+    private static final String FIELD_CREATED_AT  = "createdAt";
+    private static final String FIELD_TOUR_ID     = "tourId";
+    private static final String SORT_RATING_ASC   = "RATING_ASC";
+    private static final String ANY_DESTINATION   = "Any destination";
+
     private final TourRepository tourRepository;
     private final ReviewRepository reviewRepository;
     private final MongoTemplate mongoTemplate;
@@ -42,16 +54,16 @@ public class TourService {
     }
 
     public DestinationListResponseDTO searchDestinations(String query) {
-        if (query == null || query.length() < 3) {
+        if (query == null || query.length() < MIN_QUERY_LENGTH) {
             throw new IllegalArgumentException(
                     "Query must be at least 3 characters"
             );
         }
 
         List<String> destinations = mongoTemplate.findDistinct(
-                new Query(Criteria.where("destination")
+                new Query(Criteria.where(FIELD_DESTINATION)
                         .regex(query, "i")),
-                "destination",
+                FIELD_DESTINATION,
                 Tour.class,
                 String.class
         );
@@ -146,9 +158,9 @@ public class TourService {
 
         if (destination != null
                 && !destination.isBlank()
-                && !destination.equalsIgnoreCase("Any destination")) {
+                && !ANY_DESTINATION.equalsIgnoreCase(destination)) {
             query.addCriteria(
-                    Criteria.where("destination").regex(destination, "i")
+                    Criteria.where(FIELD_DESTINATION).regex(destination, "i")
             );
         }
 
@@ -157,12 +169,12 @@ public class TourService {
                 // Filter tours with start dates within the range
                 Criteria dateCriteria = new Criteria().gte(startDate).lte(endDate);
                 query.addCriteria(
-                        Criteria.where("startDates").elemMatch(dateCriteria)
+                        Criteria.where(FIELD_START_DATES).elemMatch(dateCriteria)
                 );
             } else {
                 // Single date - exact match
                 query.addCriteria(
-                        Criteria.where("startDates").in(startDate)
+                        Criteria.where(FIELD_START_DATES).in(startDate)
                 );
             }
         }
@@ -198,25 +210,13 @@ public class TourService {
 
     private Sort applySortOrder(String sortBy) {
         if (sortBy == null) {
-            return Sort.by(Sort.Direction.DESC, "rating");
+            return Sort.by(Sort.Direction.DESC, FIELD_RATING);
         }
         return switch (sortBy) {
-            case "RATING_ASC" -> Sort.by(Sort.Direction.ASC,  "rating");
-            case "PRICE_DESC" -> Sort.by(Sort.Direction.DESC, "basePrice");
-            case "PRICE_ASC"  -> Sort.by(Sort.Direction.ASC,  "basePrice");
-            default           -> Sort.by(Sort.Direction.DESC, "rating");
-        };
-    }
-
-    private Sort applyReviewSortOrder(String sortBy) {
-        if (sortBy == null) {
-            return Sort.by(Sort.Direction.DESC, "rate");
-        }
-        return switch (sortBy) {
-            case "RATING_ASC" -> Sort.by(Sort.Direction.ASC,  "rate");
-            case "NEWEST"     -> Sort.by(Sort.Direction.DESC, "createdAt");
-            case "OLDEST"     -> Sort.by(Sort.Direction.ASC,  "createdAt");
-            default           -> Sort.by(Sort.Direction.DESC, "rate");
+            case SORT_RATING_ASC -> Sort.by(Sort.Direction.ASC,  FIELD_RATING);
+            case "PRICE_DESC"    -> Sort.by(Sort.Direction.DESC, FIELD_BASE_PRICE);
+            case "PRICE_ASC"     -> Sort.by(Sort.Direction.ASC,  FIELD_BASE_PRICE);
+            default              -> Sort.by(Sort.Direction.DESC, FIELD_RATING);
         };
     }
 
@@ -319,15 +319,15 @@ public class TourService {
 
         Sort sort = switch (sortBy == null ? "TOP_RATED_FIRST" : sortBy) {
             case "LOW_RATED_FIRST" -> Sort.by(Sort.Direction.ASC,  "rate");
-            case "NEWEST_FIRST"   -> Sort.by(Sort.Direction.DESC, "createdAt");
-            case "OLDEST_FIRST"   -> Sort.by(Sort.Direction.ASC,  "createdAt");
+            case "NEWEST_FIRST"   -> Sort.by(Sort.Direction.DESC, FIELD_CREATED_AT);
+            case "OLDEST_FIRST"   -> Sort.by(Sort.Direction.ASC,  FIELD_CREATED_AT);
             default               -> Sort.by(Sort.Direction.DESC, "rate"); // TOP_RATED_FIRST
         };
 
-        Query countQuery = new Query(Criteria.where("tourId").is(tourId));
+        Query countQuery = new Query(Criteria.where(FIELD_TOUR_ID).is(tourId));
         long totalItems = mongoTemplate.count(countQuery, Review.class);
 
-        Query pagedQuery = new Query(Criteria.where("tourId").is(tourId))
+        Query pagedQuery = new Query(Criteria.where(FIELD_TOUR_ID).is(tourId))
                 .with(PageRequest.of(page - 1, pageSize, sort));
         List<Review> reviews = mongoTemplate.find(pagedQuery, Review.class);
 
@@ -337,7 +337,7 @@ public class TourService {
                 .mapToDouble(Review::getRate)
                 .average();
         Double averageRating = avg.isPresent()
-                ? Math.round(avg.getAsDouble() * 100.0) / 100.0
+                ? (Math.round(avg.getAsDouble() * ROUND_FACTOR) / ROUND_FACTOR)
                 : null;
 
         int totalPages = (int) Math.ceil((double) totalItems / pageSize);

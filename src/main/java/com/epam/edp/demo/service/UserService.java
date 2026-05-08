@@ -46,7 +46,6 @@ public class UserService {
 
     public User signUp(SignUpRequestDTO req) {
         String firstName = req.getFirstName().trim();
-        String lastName = req.getLastName().trim();
         String email = req.getEmail().trim().toLowerCase(Locale.ROOT);
         String password = req.getPassword();
 
@@ -56,11 +55,12 @@ public class UserService {
             throw new EmailAlreadyExistsException(email);
         }
 
+        String lastName = req.getLastName().trim();
         User user = new User(firstName, lastName, email, passwordEncoder.encode(password), Role.CUSTOMER);
         try {
             return repository.save(user);
         } catch (org.springframework.dao.DuplicateKeyException e) {
-            throw new EmailAlreadyExistsException(email);
+            throw new EmailAlreadyExistsException(email, e);
         }
     }
 

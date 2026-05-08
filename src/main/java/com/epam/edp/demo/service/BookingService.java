@@ -32,6 +32,10 @@ import java.util.stream.Collectors;
 @Service
 public class BookingService {
 
+    private static final String BOOKING_NOT_FOUND = "Booking not found: ";
+    private static final String ADULT_LABEL       = " adult";
+    private static final String PRICE_ON_REQUEST  = "Price on request";
+
     private final BookingRepository bookingRepository;
     private final TourRepository tourRepository;
     private final UserRepository userRepository;
@@ -160,7 +164,7 @@ public class BookingService {
 
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "Booking not found: " + bookingId));
+                        BOOKING_NOT_FOUND + bookingId));
 
         // Only the booking owner can cancel
         if (!booking.getUserId().equals(authenticatedUserId)) {
@@ -202,7 +206,7 @@ public class BookingService {
 
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "Booking not found: " + bookingId));
+                        BOOKING_NOT_FOUND + bookingId));
 
         if (!booking.getUserId().equals(authenticatedUserId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
@@ -243,8 +247,10 @@ public class BookingService {
         }
 
         // Update personal details (even if guests count unchanged)
-        if (req.getPersonalDetails() != null && (req.getGuests() == null ||
-                (booking.getAdults() == req.getGuests().getAdult() && booking.getChildren() == req.getGuests().getChildren()))) {
+        boolean guestsUnchanged = req.getGuests() == null
+                || (booking.getAdults() == req.getGuests().getAdult()
+                    && booking.getChildren() == req.getGuests().getChildren());
+        if (req.getPersonalDetails() != null && guestsUnchanged) {
             booking.setPersonalDetails(mapPersonalDetails(req.getPersonalDetails()));
         }
 
@@ -271,7 +277,8 @@ public class BookingService {
 
         // Recalculate total price
         if (tour != null) {
-            String newPrice = calculateTotalPrice(tour, booking.getDuration(), booking.getMealPlan(), booking.getAdults());
+            String newPrice = calculateTotalPrice(
+                    tour, booking.getDuration(), booking.getMealPlan(), booking.getAdults());
             booking.setTotalPrice(newPrice);
         }
 
@@ -330,11 +337,17 @@ public class BookingService {
             }
         }
         // Fallback to stored snapshot on the booking itself
-        if (tourName == null) tourName = booking.getTourName();
-        if (destination == null) destination = booking.getDestination();
-        if (tourImageUrl == null) tourImageUrl = booking.getTourImageUrl();
+        if (tourName == null) {
+            tourName = booking.getTourName();
+        }
+        if (destination == null) {
+            destination = booking.getDestination();
+        }
+        if (tourImageUrl == null) {
+            tourImageUrl = booking.getTourImageUrl();
+        }
 
-        BookedTourListResponseDTO.TourDetailsDTO tourDetails = buildTourDetailsDTO(booking, tour);
+        BookedTourListResponseDTO.TourDetailsDTO tourDetails = buildTourDetailsDTO(booking);
         BookedTourListResponseDTO.TravelAgentDTO travelAgent = buildTravelAgentDTO(tour);
 
         double rating = (tour != null && tour.getRating() != null) ? tour.getRating() : 0.0;
@@ -387,7 +400,7 @@ public class BookingService {
                 .build();
     }
 
-    private BookedTourListResponseDTO.TourDetailsDTO buildTourDetailsDTO(Booking booking, Tour tour) {
+    private BookedTourListResponseDTO.TourDetailsDTO buildTourDetailsDTO(Booking booking) {
         // Format date: "Jan 17, 2025 (7 days)"
         String dateStr = null;
         if (booking.getDate() != null) {
@@ -451,7 +464,7 @@ public class BookingService {
         int children = booking.getChildren();
         StringBuilder sb = new StringBuilder(leadName);
         sb.append("(");
-        sb.append(adults).append(" adult").append(adults != 1 ? "s" : "");
+        sb.append(adults).append(ADULT_LABEL).append(adults != 1 ? "s" : "");
         if (children > 0) {
             sb.append(", ").append(children).append(" child").append(children != 1 ? "ren" : "");
         }
@@ -460,10 +473,14 @@ public class BookingService {
     }
 
     private String calculateTotalPrice(Tour tour, String duration, String mealPlan, int adults) {
-        if (tour.getPricePerDuration() == null) return "Price on request";
+        if (tour.getPricePerDuration() == null) {
+            return PRICE_ON_REQUEST;
+        }
 
         String basePriceStr = tour.getPricePerDuration().get(duration);
-        if (basePriceStr == null) return "Price on request";
+        if (basePriceStr == null) {
+            return PRICE_ON_REQUEST;
+        }
 
         try {
             long basePrice = parsePriceLong(basePriceStr);
@@ -491,7 +508,9 @@ public class BookingService {
 
     private int parseDurationDays(String duration) {
         // e.g. "7 days" → 7, "10 days" → 10
-        if (duration == null) return 0;
+        if (duration == null) {
+            return 0;
+        }
         String[] parts = duration.trim().split("\\s+");
         try {
             return Integer.parseInt(parts[0]);
@@ -509,7 +528,7 @@ public class BookingService {
         String formattedDate = req.getDate().format(fmt);
         String mealPlanFormatted = MealPlanFormatter.format(req.getMealPlan());
         int adults = req.getGuests().getAdult();
-        String adultStr = adults + " adult" + (adults != 1 ? "s" : "");
+        String adultStr = adults + ADULT_LABEL + (adults != 1 ? "s" : "");
 
         return "You have booked at " + hotelOrDest
                 + ", starting date " + formattedDate
