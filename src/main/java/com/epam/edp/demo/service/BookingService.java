@@ -3,6 +3,7 @@ package com.epam.edp.demo.service;
 import com.epam.edp.demo.dto.BookedTourListResponseDTO;
 import com.epam.edp.demo.dto.CreateBookingRequestDTO;
 import com.epam.edp.demo.dto.CreateBookingResponseDTO;
+import com.epam.edp.demo.dto.PersonalDetailDTO;
 import com.epam.edp.demo.dto.UpdateBookingRequestDTO;
 import com.epam.edp.demo.enums.BookingState;
 import com.epam.edp.demo.model.Booking;
@@ -11,6 +12,7 @@ import com.epam.edp.demo.model.User;
 import com.epam.edp.demo.repository.BookingRepository;
 import com.epam.edp.demo.repository.TourRepository;
 import com.epam.edp.demo.repository.UserRepository;
+import com.epam.edp.demo.util.MealPlanFormatter;
 import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -95,15 +97,7 @@ public class BookingService {
 
         // Map personal details
         if (req.getPersonalDetails() != null) {
-            List<Booking.PersonalDetail> details = req.getPersonalDetails().stream()
-                    .map(pd -> {
-                        Booking.PersonalDetail d = new Booking.PersonalDetail();
-                        d.setFirstName(pd.getFirstName());
-                        d.setLastName(pd.getLastName());
-                        return d;
-                    })
-                    .collect(Collectors.toList());
-            booking.setPersonalDetails(details);
+            booking.setPersonalDetails(mapPersonalDetails(req.getPersonalDetails()));
         }
 
         long updated = tourRepository.incrementBookedCountIfCapacityAvailable(tour.getId());
@@ -240,14 +234,7 @@ public class BookingService {
 
                 // Update personal details if provided
                 if (req.getPersonalDetails() != null) {
-                    List<Booking.PersonalDetail> details = req.getPersonalDetails().stream()
-                            .map(pd -> {
-                                Booking.PersonalDetail d = new Booking.PersonalDetail();
-                                d.setFirstName(pd.getFirstName());
-                                d.setLastName(pd.getLastName());
-                                return d;
-                            }).collect(Collectors.toList());
-                    booking.setPersonalDetails(details);
+                    booking.setPersonalDetails(mapPersonalDetails(req.getPersonalDetails()));
                 }
 
                 String newGuestsStr = formatGuests(booking);
@@ -258,21 +245,14 @@ public class BookingService {
         // Update personal details (even if guests count unchanged)
         if (req.getPersonalDetails() != null && (req.getGuests() == null ||
                 (booking.getAdults() == req.getGuests().getAdult() && booking.getChildren() == req.getGuests().getChildren()))) {
-            List<Booking.PersonalDetail> details = req.getPersonalDetails().stream()
-                    .map(pd -> {
-                        Booking.PersonalDetail d = new Booking.PersonalDetail();
-                        d.setFirstName(pd.getFirstName());
-                        d.setLastName(pd.getLastName());
-                        return d;
-                    }).collect(Collectors.toList());
-            booking.setPersonalDetails(details);
+            booking.setPersonalDetails(mapPersonalDetails(req.getPersonalDetails()));
         }
 
         // Update meal plan
         if (req.getMealPlan() != null && !req.getMealPlan().equals(booking.getMealPlan())) {
-            String oldMeal = formatMealPlan(booking.getMealPlan());
+            String oldMeal = MealPlanFormatter.format(booking.getMealPlan());
             booking.setMealPlan(req.getMealPlan());
-            String newMeal = formatMealPlan(req.getMealPlan());
+            String newMeal = MealPlanFormatter.format(req.getMealPlan());
             changes.add("Meal plan: " + oldMeal + " → " + newMeal);
         }
 
@@ -416,7 +396,7 @@ public class BookingService {
         }
 
         // Format meal plan
-        String mealPlanFormatted = formatMealPlan(booking.getMealPlan());
+        String mealPlanFormatted = MealPlanFormatter.format(booking.getMealPlan());
 
         // Format guests: "Jhonson Doe (1 adult)" or "Jhonson Doe (2 adults, 1 child)"
         String guestsStr = formatGuests(booking);
@@ -450,6 +430,17 @@ public class BookingService {
                 .build();
     }
 
+    private List<Booking.PersonalDetail> mapPersonalDetails(List<PersonalDetailDTO> dtos) {
+        return dtos.stream()
+                .map(pd -> {
+                    Booking.PersonalDetail d = new Booking.PersonalDetail();
+                    d.setFirstName(pd.getFirstName());
+                    d.setLastName(pd.getLastName());
+                    return d;
+                })
+                .collect(Collectors.toList());
+    }
+
     private String formatGuests(Booking booking) {
         String leadName = "";
         if (booking.getPersonalDetails() != null && !booking.getPersonalDetails().isEmpty()) {
@@ -466,17 +457,6 @@ public class BookingService {
         }
         sb.append(")");
         return sb.toString();
-    }
-
-    private String formatMealPlan(String code) {
-        if (code == null) return null;
-        return switch (code) {
-            case "BB" -> "Breakfast (BB)";
-            case "HB" -> "Half-board (HB)";
-            case "FB" -> "Full-board (FB)";
-            case "AI" -> "All inclusive (AI)";
-            default   -> code;
-        };
     }
 
     private String calculateTotalPrice(Tour tour, String duration, String mealPlan, int adults) {
@@ -527,7 +507,7 @@ public class BookingService {
 
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("MMMM d, yyyy", Locale.ENGLISH);
         String formattedDate = req.getDate().format(fmt);
-        String mealPlanFormatted = formatMealPlan(req.getMealPlan());
+        String mealPlanFormatted = MealPlanFormatter.format(req.getMealPlan());
         int adults = req.getGuests().getAdult();
         String adultStr = adults + " adult" + (adults != 1 ? "s" : "");
 

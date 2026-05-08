@@ -33,30 +33,11 @@ public class CreateBookingRequestDTO {
 
     @NotNull(message = "Guests are required")
     @Valid
-    private GuestsDTO guests;
+    private BookingGuestsDTO guests;
 
     @NotNull(message = "Personal details are required")
     @Size(min = 1, message = "At least one person's details are required")
     @Valid
     private List<PersonalDetailDTO> personalDetails;
-
-    @Getter
-    @Setter
-    @NoArgsConstructor
-    public static class GuestsDTO {
-        private int adult = 1;
-        private int children = 0;
-    }
-
-    @Getter
-    @Setter
-    @NoArgsConstructor
-    public static class PersonalDetailDTO {
-        @NotBlank(message = "First name is required")
-        private String firstName;
-
-        @NotBlank(message = "Last name is required")
-        private String lastName;
-    }
 }
 
