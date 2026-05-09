@@ -1,8 +1,10 @@
 package com.epam.edp.demo.service;
 
 import com.epam.edp.demo.dto.BookedTourListResponseDTO;
+import com.epam.edp.demo.dto.BookingGuestsDTO;
 import com.epam.edp.demo.dto.CreateBookingRequestDTO;
 import com.epam.edp.demo.dto.CreateBookingResponseDTO;
+import com.epam.edp.demo.dto.PersonalDetailDTO;
 import com.epam.edp.demo.enums.BookingState;
 import com.epam.edp.demo.model.Booking;
 import com.epam.edp.demo.model.Tour;
@@ -450,15 +452,15 @@ class BookingServiceTest {
         req.setDuration("7 days");
         req.setMealPlan(mealPlan);
 
-        CreateBookingRequestDTO.GuestsDTO guests = new CreateBookingRequestDTO.GuestsDTO();
+        BookingGuestsDTO guests = new BookingGuestsDTO();
         guests.setAdult(adults);
         guests.setChildren(1);
         req.setGuests(guests);
 
-        CreateBookingRequestDTO.PersonalDetailDTO p1 = new CreateBookingRequestDTO.PersonalDetailDTO();
+        PersonalDetailDTO p1 = new PersonalDetailDTO();
         p1.setFirstName("John");
         p1.setLastName("Doe");
-        CreateBookingRequestDTO.PersonalDetailDTO p2 = new CreateBookingRequestDTO.PersonalDetailDTO();
+        PersonalDetailDTO p2 = new PersonalDetailDTO();
         p2.setFirstName("Jane");
         p2.setLastName("Doe");
         req.setPersonalDetails(List.of(p1, p2));

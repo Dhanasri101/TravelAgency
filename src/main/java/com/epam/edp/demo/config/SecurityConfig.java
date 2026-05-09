@@ -23,6 +23,8 @@ import java.util.Map;
 @Configuration
 public class SecurityConfig {
 
+    private static final int BCRYPT_STRENGTH = 12;
+
     private final JwtAuthenticationFilter jwtFilter;
 
     public SecurityConfig(JwtAuthenticationFilter jwtFilter) {
@@ -31,7 +33,7 @@ public class SecurityConfig {
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder(12);
+        return new BCryptPasswordEncoder(BCRYPT_STRENGTH);
     }
 
     @Bean

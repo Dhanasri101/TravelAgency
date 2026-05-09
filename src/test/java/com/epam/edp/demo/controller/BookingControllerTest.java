@@ -1,8 +1,10 @@
 package com.epam.edp.demo.controller;
 
 import com.epam.edp.demo.dto.BookedTourListResponseDTO;
+import com.epam.edp.demo.dto.BookingGuestsDTO;
 import com.epam.edp.demo.dto.CreateBookingRequestDTO;
 import com.epam.edp.demo.dto.CreateBookingResponseDTO;
+import com.epam.edp.demo.dto.PersonalDetailDTO;
 import com.epam.edp.demo.service.BookingService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -320,12 +322,12 @@ class BookingControllerTest {
         req.setDuration("7 days");
         req.setMealPlan("BB");
 
-        CreateBookingRequestDTO.GuestsDTO guests = new CreateBookingRequestDTO.GuestsDTO();
+        BookingGuestsDTO guests = new BookingGuestsDTO();
         guests.setAdult(1);
         guests.setChildren(0);
         req.setGuests(guests);
 
-        CreateBookingRequestDTO.PersonalDetailDTO detail = new CreateBookingRequestDTO.PersonalDetailDTO();
+        PersonalDetailDTO detail = new PersonalDetailDTO();
         detail.setFirstName("John");
         detail.setLastName("Doe");
         req.setPersonalDetails(List.of(detail));

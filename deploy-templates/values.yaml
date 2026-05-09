@@ -110,3 +110,17 @@ tolerations: []
 
 # -- https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#affinity-and-anti-affinity
 affinity: {}
+
+
+env:
+  extraEnv:
+    - name: MONGODB_URI
+      valueFrom:
+        secretKeyRef:
+          name: run23team2-secret
+          key: mongo-uri
+    - name: JWT_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: run23team2-secret
+          key: jwt-secret
