@@ -213,10 +213,22 @@ public class TourService {
             return Sort.by(Sort.Direction.DESC, FIELD_RATING);
         }
         return switch (sortBy) {
-            case SORT_RATING_ASC -> Sort.by(Sort.Direction.ASC,  FIELD_RATING);
-            case "PRICE_DESC"    -> Sort.by(Sort.Direction.DESC, FIELD_BASE_PRICE);
-            case "PRICE_ASC"     -> Sort.by(Sort.Direction.ASC,  FIELD_BASE_PRICE);
-            default              -> Sort.by(Sort.Direction.DESC, FIELD_RATING);
+            case "RATING_ASC" -> Sort.by(Sort.Direction.ASC,  "rating");
+            case "PRICE_DESC" -> Sort.by(Sort.Direction.DESC, "basePrice");
+            case "PRICE_ASC"  -> Sort.by(Sort.Direction.ASC,  "basePrice");
+            default           -> Sort.by(Sort.Direction.DESC, "rating");
+        };
+    }
+
+    private Sort applyReviewSortOrder(String sortBy) {
+        if (sortBy == null) {
+            return Sort.by(Sort.Direction.DESC, "rate");
+        }
+        return switch (sortBy) {
+            case "RATING_ASC" -> Sort.by(Sort.Direction.ASC,  "rate");
+            case "NEWEST"     -> Sort.by(Sort.Direction.DESC, "createdAt");
+            case "OLDEST"     -> Sort.by(Sort.Direction.ASC,  "createdAt");
+            default           -> Sort.by(Sort.Direction.DESC, "rate");
         };
     }
 
