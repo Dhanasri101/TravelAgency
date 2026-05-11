@@ -1,11 +1,9 @@
 import axios from 'axios';
-import { TOKEN_KEY } from './client';
+import { API_BASE_URL, TOKEN_KEY } from './client';
 
-// Tour endpoints live at /tours/** (not /api/v1/**), so use a separate axios
-// instance pointing at the root. The proxy in package.json forwards to the
-// Spring Boot backend during development.
+// Tour endpoints live at /tours/** (not /api/v1/**).
 const toursClient = axios.create({
-  baseURL: '/',
+  baseURL: API_BASE_URL || '/',
   headers: { 'Content-Type': 'application/json' },
 });
 

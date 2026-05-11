@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import './BookingModal.css';
-import { client } from '../api/client';
+import { buildApiUrl, client } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import BookingConfirmation from './BookingConfirmation';
 
@@ -120,7 +120,7 @@ export default function BookingModal({ tour, onClose }) {
     let cancelled = false;
     async function load() {
       try {
-        const res = await fetch(`/tours/${tour.id}`);
+        const res = await fetch(buildApiUrl(`/tours/${tour.id}`));
         if (res.ok) {
           const data = await res.json();
           if (!cancelled) setTourDetail(data);
