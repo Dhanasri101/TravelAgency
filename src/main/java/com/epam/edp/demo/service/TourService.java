@@ -25,6 +25,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.OptionalDouble;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -42,6 +43,15 @@ public class TourService {
     private static final String SORT_RATING_ASC   = "RATING_ASC";
     private static final String ANY_DESTINATION   = "Any destination";
 
+    private static final Set<String> VALID_SORT_VALUES = Set.of(
+            "RATING_ASC", "RATING_DESC", "PRICE_ASC", "PRICE_DESC");
+    private static final Set<String> VALID_MEAL_PLANS = Set.of(
+            "BB", "HB", "FB", "AI", "RO");
+    private static final Set<String> VALID_TOUR_TYPES = Set.of(
+            "Cruises", "Hikes", "Resorts");
+    private static final Set<String> VALID_REVIEW_SORT_VALUES = Set.of(
+            "TOP_RATED_FIRST", "LOW_RATED_FIRST", "NEWEST_FIRST", "OLDEST_FIRST");
+
     private final TourRepository tourRepository;
     private final ReviewRepository reviewRepository;
     private final MongoTemplate mongoTemplate;
@@ -55,7 +65,7 @@ public class TourService {
     }
 
     public DestinationListResponseDTO searchDestinations(String query) {
-        if (query == null || query.length() < MIN_QUERY_LENGTH) {
+        if (query == null || query.isBlank() || query.trim().length() < MIN_QUERY_LENGTH) {
             throw new IllegalArgumentException(
                     "Query must be at least 3 characters"
             );
@@ -87,10 +97,30 @@ public class TourService {
             int page,
             int pageSize
     ) {
+        if (mealPlan != null && !VALID_MEAL_PLANS.contains(mealPlan)) {
+            throw new IllegalArgumentException("Invalid mealPlan: " + mealPlan
+                    + ". Allowed values: " + VALID_MEAL_PLANS);
+        }
+        if (tourType != null && !VALID_TOUR_TYPES.contains(tourType)) {
+            throw new IllegalArgumentException("Invalid tourType: " + tourType
+                    + ". Allowed values: " + VALID_TOUR_TYPES);
+        }
+        if (sortBy != null && !VALID_SORT_VALUES.contains(sortBy)) {
+            throw new IllegalArgumentException("Invalid sortBy: " + sortBy
+                    + ". Allowed values: " + VALID_SORT_VALUES);
+        }
+
         Query query = buildTourQuery(
                 destination, startDate, endDate, duration,
                 adults, children, mealPlan, tourType
         );
+
+        if (page < 1) {
+            throw new IllegalArgumentException("Page must be >= 1");
+        }
+        if (pageSize < 1) {
+            throw new IllegalArgumentException("Page size must be >= 1");
+        }
 
         Sort sort = applySortOrder(sortBy);
         long totalItems = mongoTemplate.count(query, Tour.class);
@@ -327,6 +357,18 @@ public class TourService {
     }
 
     public ReviewListResponseDTO getReviews(String tourId, String sortBy, int page, int pageSize) {
+        if (page < 1) {
+            throw new IllegalArgumentException("Page must be >= 1");
+        }
+        if (pageSize < 1) {
+            throw new IllegalArgumentException("Page size must be >= 1");
+        }
+
+        if (sortBy != null && !VALID_REVIEW_SORT_VALUES.contains(sortBy)) {
+            throw new IllegalArgumentException("Invalid sortBy: " + sortBy
+                    + ". Allowed values: " + VALID_REVIEW_SORT_VALUES);
+        }
+
         if (!tourRepository.existsById(tourId)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Tour not found: " + tourId);
         }

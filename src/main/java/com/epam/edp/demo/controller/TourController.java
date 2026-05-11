@@ -13,10 +13,13 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
+import java.util.regex.Pattern;
 
 @RestController
 @RequestMapping("/tours")
 public class TourController {
+
+    private static final Pattern OBJECT_ID_PATTERN = Pattern.compile("^[a-fA-F0-9]{24}$");
 
     private final TourService tourService;
 
@@ -94,6 +97,9 @@ public class TourController {
 
     @GetMapping("/{id}")
     public ResponseEntity<TourDetailResponseDTO> getTourById(@PathVariable String id) {
+        if (!OBJECT_ID_PATTERN.matcher(id).matches()) {
+            throw new IllegalArgumentException("Invalid tour ID format: " + id);
+        }
         return ResponseEntity.ok(tourService.getTourById(id));
     }
 
@@ -104,6 +110,9 @@ public class TourController {
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "4") int pageSize
     ) {
+        if (!OBJECT_ID_PATTERN.matcher(id).matches()) {
+            throw new IllegalArgumentException("Invalid tour ID format: " + id);
+        }
         return ResponseEntity.ok(tourService.getReviews(id, sortBy, page, pageSize));
     }
 }

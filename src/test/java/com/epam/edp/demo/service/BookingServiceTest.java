@@ -137,8 +137,8 @@ class BookingServiceTest {
         ArgumentCaptor<Booking> captor = ArgumentCaptor.forClass(Booking.class);
         verify(bookingRepository).save(captor.capture());
         Booking saved = captor.getValue();
-        assertEquals(2, saved.getPersonalDetails().size());
-        assertEquals("John", saved.getPersonalDetails().get(0).getFirstName());
+        assertEquals(3, saved.getPersonalDetails().size());
+        assertEquals("Person1", saved.getPersonalDetails().get(0).getFirstName());
     }
 
     @Test
@@ -457,13 +457,15 @@ class BookingServiceTest {
         guests.setChildren(1);
         req.setGuests(guests);
 
-        PersonalDetailDTO p1 = new PersonalDetailDTO();
-        p1.setFirstName("John");
-        p1.setLastName("Doe");
-        PersonalDetailDTO p2 = new PersonalDetailDTO();
-        p2.setFirstName("Jane");
-        p2.setLastName("Doe");
-        req.setPersonalDetails(List.of(p1, p2));
+        int totalGuests = adults + 1; // adults + 1 child
+        List<PersonalDetailDTO> details = new java.util.ArrayList<>();
+        for (int i = 0; i < totalGuests; i++) {
+            PersonalDetailDTO p = new PersonalDetailDTO();
+            p.setFirstName("Person" + (i + 1));
+            p.setLastName("Doe");
+            details.add(p);
+        }
+        req.setPersonalDetails(details);
 
         return req;
     }
