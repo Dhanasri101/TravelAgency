@@ -69,13 +69,13 @@ export default function HomePage() {
   const handleSearch = () => {
     const filters = {
       destination,
-      startDate: startDate ? startDate.toISOString().split('T')[0] : undefined,
-      endDate: endDate ? endDate.toISOString().split('T')[0] : undefined,
-      duration: selectedDurations.length === 1 ? selectedDurations[0] : undefined,
+      startDate: startDate ? `${startDate.getFullYear()}-${String(startDate.getMonth()+1).padStart(2,'0')}-${String(startDate.getDate()).padStart(2,'0')}` : undefined,
+      endDate: endDate ? `${endDate.getFullYear()}-${String(endDate.getMonth()+1).padStart(2,'0')}-${String(endDate.getDate()).padStart(2,'0')}` : undefined,
+      duration: selectedDurations.length > 0 ? selectedDurations[0] : undefined,
       adults,
       children: childCount,
-      mealPlan: selectedMealPlans[0] ?? undefined,
-      tourType: selectedTourTypes[0] ?? undefined,
+      mealPlan: selectedMealPlans.length > 0 ? selectedMealPlans[0] : undefined,
+      tourType: selectedTourTypes.length > 0 ? selectedTourTypes[0] : undefined,
       sortBy,
     };
     setAppliedFilters(filters);
