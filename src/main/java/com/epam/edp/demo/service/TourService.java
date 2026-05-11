@@ -9,6 +9,7 @@ import com.epam.edp.demo.model.Tour;
 import com.epam.edp.demo.repository.ReviewRepository;
 import com.epam.edp.demo.repository.TourRepository;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.BasicQuery;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.domain.PageRequest;
@@ -148,13 +149,11 @@ public class TourService {
             String mealPlan,
             String tourType
     ) {
-        Query query = new Query();
-
-        query.addCriteria(
-                Criteria.where("$expr").is(
-                        new Document("$lt", Arrays.asList("$bookedCount", "$totalCapacity"))
-                )
-        );
+        // Use BasicQuery so $expr is sent as raw BSON —
+        // Criteria.where("$expr") escapes $ in Spring Data MongoDB 4.x
+        Document capacityFilter = new Document("$expr",
+                new Document("$lt", Arrays.asList("$bookedCount", "$totalCapacity")));
+        Query query = new BasicQuery(capacityFilter);
 
         if (destination != null
                 && !destination.isBlank()
@@ -236,22 +235,25 @@ public class TourService {
     // Private — mappers
     // ─────────────────────────────────────────────
     private TourListResponseDTO.TourItem mapToTourItem(Tour tour) {
-        LocalDate earliestDate = tour.getStartDates().stream()
-                .min(Comparator.naturalOrder())
-                .orElse(null);
+        List<LocalDate> dates = tour.getStartDates();
+        LocalDate earliestDate = (dates == null || dates.isEmpty()) ? null :
+                dates.stream().filter(d -> d != null).min(Comparator.naturalOrder()).orElse(null);
 
-        String lowestPrice = tour.getPricePerDuration().values().stream()
-                .min(Comparator.naturalOrder())
-                .map(p -> "from " + p + " for 1 person")
-                .orElse("Price on request");
+        String lowestPrice = (tour.getPricePerDuration() == null || tour.getPricePerDuration().isEmpty())
+                ? "Price on request"
+                : tour.getPricePerDuration().values().stream()
+                        .min(Comparator.naturalOrder())
+                        .map(p -> "from " + p + " for 1 person")
+                        .orElse("Price on request");
 
-        LocalDate freeCancellation = earliestDate != null
+        LocalDate freeCancellation = (earliestDate != null && tour.getFreeCancellationDaysBefore() != null)
                 ? earliestDate.minusDays(tour.getFreeCancellationDaysBefore())
                 : null;
 
-        List<String> formattedMealPlans = tour.getMealPlans().stream()
-                .map(MealPlanFormatter::format)
-                .collect(Collectors.toList());
+        List<String> formattedMealPlans = (tour.getMealPlans() == null) ? List.of() :
+                tour.getMealPlans().stream()
+                        .map(MealPlanFormatter::format)
+                        .collect(Collectors.toList());
 
         return TourListResponseDTO.TourItem.builder()
                 .id(tour.getId())
