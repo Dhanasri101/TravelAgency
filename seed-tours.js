@@ -1,4 +1,4 @@
-const db = connect("mongodb://localhost:27017/travelagency");
+const db = connect(${MONGODB_URI});
 
 db.tours.deleteMany({});
 
