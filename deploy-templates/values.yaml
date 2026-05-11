@@ -11,7 +11,7 @@ image:
   tag: ""
 
 imagePullSecrets:
-# Define secret to pull images. Secret can be provisioned by edp-install or manually.
+  # Define secret to pull images. Secret can be provisioned by edp-install or manually.
   - name: regcred
 nameOverride: ""
 fullnameOverride: ""
@@ -30,7 +30,7 @@ podAnnotations: {}
 podLabels: {}
 
 podSecurityContext: {}
-  # fsGroup: 2000
+# fsGroup: 2000
 
 securityContext: {}
   # capabilities:
@@ -38,7 +38,7 @@ securityContext: {}
   #   - ALL
   # readOnlyRootFilesystem: true
   # runAsNonRoot: true
-  # runAsUser: 1000
+# runAsUser: 1000
 
 service:
   type: ClusterIP
@@ -50,7 +50,7 @@ ingress:
   className: ""
   annotations: {}
     # kubernetes.io/ingress.class: nginx
-    # kubernetes.io/tls-acme: "true"
+  # kubernetes.io/tls-acme: "true"
   hosts:
     # If need to use specific host, define host value below. By default when set 'edpDefault' FQDN: <CODEBASE_NAME>-<CODEBASE_NAMESPACE>.<CLUSTER_DNS_WILDCARD>
     - host: edpDefault
@@ -72,7 +72,7 @@ resources: {}
   #   memory: 128Mi
   # requests:
   #   cpu: 100m
-  #   memory: 128Mi
+#   memory: 128Mi
 
 livenessProbe:
   tcpSocket:
@@ -114,7 +114,7 @@ affinity: {}
 
 env:
   extraEnv:
-    - name: MONGODB_URI
+    - name: MONGO_URI
       valueFrom:
         secretKeyRef:
           name: run23team3-secret
