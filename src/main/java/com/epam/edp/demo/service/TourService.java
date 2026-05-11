@@ -224,22 +224,25 @@ public class TourService {
     // Private — mappers
     // ─────────────────────────────────────────────
     private TourListResponseDTO.TourItem mapToTourItem(Tour tour) {
-        LocalDate earliestDate = tour.getStartDates().stream()
-                .min(Comparator.naturalOrder())
-                .orElse(null);
+        List<LocalDate> dates = tour.getStartDates();
+        LocalDate earliestDate = (dates == null || dates.isEmpty()) ? null :
+                dates.stream().filter(d -> d != null).min(Comparator.naturalOrder()).orElse(null);
 
-        String lowestPrice = tour.getPricePerDuration().values().stream()
-                .min(Comparator.naturalOrder())
-                .map(p -> "from " + p + " for 1 person")
-                .orElse("Price on request");
+        String lowestPrice = (tour.getPricePerDuration() == null || tour.getPricePerDuration().isEmpty())
+                ? "Price on request"
+                : tour.getPricePerDuration().values().stream()
+                        .min(Comparator.naturalOrder())
+                        .map(p -> "from " + p + " for 1 person")
+                        .orElse("Price on request");
 
-        LocalDate freeCancellation = earliestDate != null
+        LocalDate freeCancellation = (earliestDate != null && tour.getFreeCancellationDaysBefore() != null)
                 ? earliestDate.minusDays(tour.getFreeCancellationDaysBefore())
                 : null;
 
-        List<String> formattedMealPlans = tour.getMealPlans().stream()
-                .map(MealPlanFormatter::format)
-                .collect(Collectors.toList());
+        List<String> formattedMealPlans = (tour.getMealPlans() == null) ? List.of() :
+                tour.getMealPlans().stream()
+                        .map(MealPlanFormatter::format)
+                        .collect(Collectors.toList());
 
         return TourListResponseDTO.TourItem.builder()
                 .id(tour.getId())
