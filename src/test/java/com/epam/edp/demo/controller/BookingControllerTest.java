@@ -110,13 +110,13 @@ class BookingControllerTest {
 
     @Test
     void getBookings_returnsOkWithBody() {
-        authenticate("user-1", true);
+        authenticate("aaaaaaaaaaaaaaaaaaaaaa11", true);
         BookedTourListResponseDTO expected = BookedTourListResponseDTO.builder()
                 .bookings(List.of())
                 .build();
-        when(bookingService.getBookingsForUser("user-1", "user-1")).thenReturn(expected);
+        when(bookingService.getBookingsForUser("aaaaaaaaaaaaaaaaaaaaaa11", "aaaaaaaaaaaaaaaaaaaaaa11")).thenReturn(expected);
 
-        ResponseEntity<BookedTourListResponseDTO> response = bookingController.getBookings("user-1");
+        ResponseEntity<BookedTourListResponseDTO> response = bookingController.getBookings("aaaaaaaaaaaaaaaaaaaaaa11");
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(expected, response.getBody());
@@ -124,23 +124,23 @@ class BookingControllerTest {
 
     @Test
     void getBookings_passesRequestAndAuthenticatedUserIds() {
-        authenticate("auth-user", true);
-        when(bookingService.getBookingsForUser("query-user", "auth-user"))
+        authenticate("aaaaaaaaaaaaaaaaaaaaaa22", true);
+        when(bookingService.getBookingsForUser("aaaaaaaaaaaaaaaaaaaaaa33", "aaaaaaaaaaaaaaaaaaaaaa22"))
                 .thenReturn(BookedTourListResponseDTO.builder().bookings(List.of()).build());
 
-        bookingController.getBookings("query-user");
+        bookingController.getBookings("aaaaaaaaaaaaaaaaaaaaaa33");
 
-        verify(bookingService).getBookingsForUser("query-user", "auth-user");
+        verify(bookingService).getBookingsForUser("aaaaaaaaaaaaaaaaaaaaaa33", "aaaaaaaaaaaaaaaaaaaaaa22");
     }
 
     @Test
     void getBookings_propagatesServiceExceptions() {
-        authenticate("user-1", true);
-        when(bookingService.getBookingsForUser("user-2", "user-1"))
+        authenticate("aaaaaaaaaaaaaaaaaaaaaa11", true);
+        when(bookingService.getBookingsForUser("aaaaaaaaaaaaaaaaaaaaaa44", "aaaaaaaaaaaaaaaaaaaaaa11"))
                 .thenThrow(new ResponseStatusException(HttpStatus.FORBIDDEN, "no"));
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> bookingController.getBookings("user-2"));
+                () -> bookingController.getBookings("aaaaaaaaaaaaaaaaaaaaaa44"));
 
         assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
     }
@@ -238,17 +238,17 @@ class BookingControllerTest {
         SecurityContextHolder.clearContext();
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> bookingController.getBookings("user-1"));
+                () -> bookingController.getBookings("aaaaaaaaaaaaaaaaaaaaaa11"));
 
         assertEquals(HttpStatus.UNAUTHORIZED, ex.getStatusCode());
     }
 
     @Test
     void getBookings_unauthorizedWhenAuthenticationNotAuthenticated() {
-        authenticate("user-1", false);
+        authenticate("aaaaaaaaaaaaaaaaaaaaaa11", false);
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> bookingController.getBookings("user-1"));
+                () -> bookingController.getBookings("aaaaaaaaaaaaaaaaaaaaaa11"));
 
         assertEquals(HttpStatus.UNAUTHORIZED, ex.getStatusCode());
     }
@@ -258,7 +258,7 @@ class BookingControllerTest {
         setAuthentication(new TestingAuthenticationToken(null, null, "ROLE_USER"));
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> bookingController.getBookings("user-1"));
+                () -> bookingController.getBookings("aaaaaaaaaaaaaaaaaaaaaa11"));
 
         assertEquals(HttpStatus.UNAUTHORIZED, ex.getStatusCode());
     }

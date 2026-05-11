@@ -113,10 +113,10 @@ class TourControllerTest {
 
     @Test
     void getTourById_returnsOkAndBody() {
-        TourDetailResponseDTO dto = TourDetailResponseDTO.builder().id("t-1").name("Paris").build();
-        when(tourService.getTourById("t-1")).thenReturn(dto);
+        TourDetailResponseDTO dto = TourDetailResponseDTO.builder().id("aaaaaaaaaaaaaaaaaaaaaaaa").name("Paris").build();
+        when(tourService.getTourById("aaaaaaaaaaaaaaaaaaaaaaaa")).thenReturn(dto);
 
-        ResponseEntity<TourDetailResponseDTO> response = tourController.getTourById("t-1");
+        ResponseEntity<TourDetailResponseDTO> response = tourController.getTourById("aaaaaaaaaaaaaaaaaaaaaaaa");
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(dto, response.getBody());
@@ -124,19 +124,19 @@ class TourControllerTest {
 
     @Test
     void getTourById_delegatesIdToService() {
-        when(tourService.getTourById("t-99")).thenReturn(TourDetailResponseDTO.builder().id("t-99").build());
+        when(tourService.getTourById("bbbbbbbbbbbbbbbbbbbbbbbb")).thenReturn(TourDetailResponseDTO.builder().id("bbbbbbbbbbbbbbbbbbbbbbbb").build());
 
-        tourController.getTourById("t-99");
+        tourController.getTourById("bbbbbbbbbbbbbbbbbbbbbbbb");
 
-        verify(tourService).getTourById("t-99");
+        verify(tourService).getTourById("bbbbbbbbbbbbbbbbbbbbbbbb");
     }
 
     @Test
     void getTourById_propagatesServiceExceptions() {
-        when(tourService.getTourById("missing")).thenThrow(new RuntimeException("not found"));
+        when(tourService.getTourById("cccccccccccccccccccccccc")).thenThrow(new RuntimeException("not found"));
 
         RuntimeException ex = assertThrows(RuntimeException.class,
-                () -> tourController.getTourById("missing"));
+                () -> tourController.getTourById("cccccccccccccccccccccccc"));
 
         assertEquals("not found", ex.getMessage());
     }
@@ -144,9 +144,9 @@ class TourControllerTest {
     @Test
     void getReviews_returnsOkAndBody() {
         ReviewListResponseDTO dto = ReviewListResponseDTO.builder().reviews(List.of()).build();
-        when(tourService.getReviews("t-1", "TOP_RATED_FIRST", 1, 4)).thenReturn(dto);
+        when(tourService.getReviews("aaaaaaaaaaaaaaaaaaaaaaaa", "TOP_RATED_FIRST", 1, 4)).thenReturn(dto);
 
-        ResponseEntity<ReviewListResponseDTO> response = tourController.getReviews("t-1", "TOP_RATED_FIRST", 1, 4);
+        ResponseEntity<ReviewListResponseDTO> response = tourController.getReviews("aaaaaaaaaaaaaaaaaaaaaaaa", "TOP_RATED_FIRST", 1, 4);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(dto, response.getBody());
@@ -154,19 +154,19 @@ class TourControllerTest {
 
     @Test
     void getReviews_delegatesInputsToService() {
-        when(tourService.getReviews("t-2", "NEWEST_FIRST", 2, 8)).thenReturn(ReviewListResponseDTO.builder().reviews(List.of()).build());
+        when(tourService.getReviews("dddddddddddddddddddddddd", "NEWEST_FIRST", 2, 8)).thenReturn(ReviewListResponseDTO.builder().reviews(List.of()).build());
 
-        tourController.getReviews("t-2", "NEWEST_FIRST", 2, 8);
+        tourController.getReviews("dddddddddddddddddddddddd", "NEWEST_FIRST", 2, 8);
 
-        verify(tourService).getReviews("t-2", "NEWEST_FIRST", 2, 8);
+        verify(tourService).getReviews("dddddddddddddddddddddddd", "NEWEST_FIRST", 2, 8);
     }
 
     @Test
     void getReviews_propagatesServiceExceptions() {
-        when(tourService.getReviews("t-1", "TOP_RATED_FIRST", 1, 4)).thenThrow(new RuntimeException("reviews error"));
+        when(tourService.getReviews("aaaaaaaaaaaaaaaaaaaaaaaa", "TOP_RATED_FIRST", 1, 4)).thenThrow(new RuntimeException("reviews error"));
 
         RuntimeException ex = assertThrows(RuntimeException.class,
-                () -> tourController.getReviews("t-1", "TOP_RATED_FIRST", 1, 4));
+                () -> tourController.getReviews("aaaaaaaaaaaaaaaaaaaaaaaa", "TOP_RATED_FIRST", 1, 4));
 
         assertEquals("reviews error", ex.getMessage());
     }
@@ -217,19 +217,19 @@ class TourControllerTest {
 
     @Test
     void getTourById_returnsNonNullBodyForValidServiceResponse() {
-        when(tourService.getTourById("t-1")).thenReturn(TourDetailResponseDTO.builder().id("t-1").build());
+        when(tourService.getTourById("aaaaaaaaaaaaaaaaaaaaaaaa")).thenReturn(TourDetailResponseDTO.builder().id("aaaaaaaaaaaaaaaaaaaaaaaa").build());
 
-        ResponseEntity<TourDetailResponseDTO> response = tourController.getTourById("t-1");
+        ResponseEntity<TourDetailResponseDTO> response = tourController.getTourById("aaaaaaaaaaaaaaaaaaaaaaaa");
 
         assertNotNull(response.getBody());
     }
 
     @Test
     void getReviews_returnsNonNullBodyForValidServiceResponse() {
-        when(tourService.getReviews("t-1", "TOP_RATED_FIRST", 1, 4))
+        when(tourService.getReviews("aaaaaaaaaaaaaaaaaaaaaaaa", "TOP_RATED_FIRST", 1, 4))
                 .thenReturn(ReviewListResponseDTO.builder().reviews(List.of()).build());
 
-        ResponseEntity<ReviewListResponseDTO> response = tourController.getReviews("t-1", "TOP_RATED_FIRST", 1, 4);
+        ResponseEntity<ReviewListResponseDTO> response = tourController.getReviews("aaaaaaaaaaaaaaaaaaaaaaaa", "TOP_RATED_FIRST", 1, 4);
 
         assertNotNull(response.getBody());
     }
@@ -246,13 +246,13 @@ class TourControllerTest {
 
     @Test
     void getReviews_handlesDifferentSortOption() {
-        when(tourService.getReviews("t-9", "OLDEST_FIRST", 1, 4))
+        when(tourService.getReviews("eeeeeeeeeeeeeeeeeeeeeeee", "OLDEST_FIRST", 1, 4))
                 .thenReturn(ReviewListResponseDTO.builder().reviews(List.of()).build());
 
-        ResponseEntity<ReviewListResponseDTO> response = tourController.getReviews("t-9", "OLDEST_FIRST", 1, 4);
+        ResponseEntity<ReviewListResponseDTO> response = tourController.getReviews("eeeeeeeeeeeeeeeeeeeeeeee", "OLDEST_FIRST", 1, 4);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        verify(tourService).getReviews("t-9", "OLDEST_FIRST", 1, 4);
+        verify(tourService).getReviews("eeeeeeeeeeeeeeeeeeeeeeee", "OLDEST_FIRST", 1, 4);
     }
 
     @Test

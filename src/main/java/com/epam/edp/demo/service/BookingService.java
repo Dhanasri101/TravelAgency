@@ -64,6 +64,14 @@ public class BookingService {
                     "You can only create bookings for yourself");
         }
 
+        // Validate personalDetails count matches total guests
+        int totalGuests = req.getGuests().getAdult() + req.getGuests().getChildren();
+        if (req.getPersonalDetails() != null && req.getPersonalDetails().size() != totalGuests) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "personalDetails count (" + req.getPersonalDetails().size()
+                            + ") must match total guests (" + totalGuests + ")");
+        }
+
         // Load tour
         Tour tour = tourRepository.findById(req.getTourId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,

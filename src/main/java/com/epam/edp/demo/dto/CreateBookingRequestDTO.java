@@ -3,6 +3,7 @@ package com.epam.edp.demo.dto;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -29,6 +30,7 @@ public class CreateBookingRequestDTO {
     private String duration;
 
     @NotBlank(message = "Meal plan is required")
+    @Pattern(regexp = "BB|HB|FB|AI|RO", message = "Invalid meal plan. Allowed values: BB, HB, FB, AI, RO")
     private String mealPlan;
 
     @NotNull(message = "Guests are required")

@@ -22,10 +22,13 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 @RestController
 @RequestMapping("/api/v1/bookings")
 public class BookingController {
+
+    private static final Pattern OBJECT_ID_PATTERN = Pattern.compile("^[a-fA-F0-9]{24}$");
 
     private final BookingService bookingService;
 
@@ -54,6 +57,9 @@ public class BookingController {
     public ResponseEntity<BookedTourListResponseDTO> getBookings(
             @RequestParam String userId
     ) {
+        if (userId == null || userId.isBlank() || !OBJECT_ID_PATTERN.matcher(userId.trim()).matches()) {
+            throw new IllegalArgumentException("Invalid userId format");
+        }
         String authenticatedUserId = getAuthenticatedUserId();
         BookedTourListResponseDTO response = bookingService.getBookingsForUser(userId, authenticatedUserId);
         return ResponseEntity.ok(response);

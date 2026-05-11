@@ -73,6 +73,12 @@ public class GlobalExceptionHandler {
                 .body(simpleBody(HttpStatus.UNAUTHORIZED, "Unauthenticated", ex.getMessage()));
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, Object>> handleIllegalArgument(IllegalArgumentException ex) {
+        return ResponseEntity.badRequest()
+                .body(simpleBody(HttpStatus.BAD_REQUEST, "Bad Request", ex.getMessage()));
+    }
+
     private static Map<String, Object> simpleBody(HttpStatus status, String error, String message) {
         Map<String, Object> b = new LinkedHashMap<>();
         b.put(KEY_TIMESTAMP, Instant.now());
