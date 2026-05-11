@@ -9,6 +9,7 @@ import com.epam.edp.demo.model.Tour;
 import com.epam.edp.demo.repository.ReviewRepository;
 import com.epam.edp.demo.repository.TourRepository;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.BasicQuery;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.domain.PageRequest;
@@ -148,13 +149,11 @@ public class TourService {
             String mealPlan,
             String tourType
     ) {
-        Query query = new Query();
-
-        query.addCriteria(
-                Criteria.where("$expr").is(
-                        new Document("$lt", Arrays.asList("$bookedCount", "$totalCapacity"))
-                )
-        );
+        // Use BasicQuery so $expr is sent as raw BSON —
+        // Criteria.where("$expr") escapes $ in Spring Data MongoDB 4.x
+        Document capacityFilter = new Document("$expr",
+                new Document("$lt", Arrays.asList("$bookedCount", "$totalCapacity")));
+        Query query = new BasicQuery(capacityFilter);
 
         if (destination != null
                 && !destination.isBlank()
