@@ -44,7 +44,7 @@ function isSameDay(a, b) {
 
 function isBetween(day, start, end) {
   if (!start || !end) return false;
-  return day > start && day < end;
+  return day >= start && day <= end;
 }
 
 function fmtShort(date) {

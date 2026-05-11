@@ -28,9 +28,8 @@ export default function CancelBookingModal({ booking, onConfirmCancel, onKeep })
 
   // Only two states: either free cancellation is still possible (yellow) or it's expired (red)
   // If freeCancelDate exists → compare with today
-  // If freeCancelDate is null → use booking start date as fallback
-  const deadlineDate = freeCancelDate || booking?.rawDate;
-  const isFreeCancel = deadlineDate ? todayStr <= deadlineDate : false;
+  // If freeCancelDate is null → no free cancellation policy, show expired banner
+  const isFreeCancel = freeCancelDate ? todayStr <= freeCancelDate : false;
 
   // Format the free cancel date for display
   const formattedFreeCancelDate = freeCancelDate
