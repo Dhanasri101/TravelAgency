@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import './EditBookingModal.css';
-import { client } from '../api/client';
+import { buildApiUrl, client } from '../api/client';
 
 /* ── icon helpers ────────────────────────────────────────────── */
 function StarIcon() {
@@ -85,7 +85,7 @@ export default function EditBookingModal({ booking, onClose, onSaved }) {
     let cancelled = false;
     async function load() {
       try {
-        const res = await fetch(`/tours/${booking.tourId}`);
+        const res = await fetch(buildApiUrl(`/tours/${booking.tourId}`));
         if (res.ok) {
           const data = await res.json();
           if (!cancelled) setTourDetail(data);

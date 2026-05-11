@@ -2,8 +2,19 @@ import axios from 'axios';
 
 export const TOKEN_KEY = 'ta.jwt';
 
+const rawApiBaseUrl = process.env.REACT_APP_API_BASE_URL || '';
+const DEFAULT_API_BASE_URL = 'https://sprint1-run23-team3-develop-dev-deploy.development.krci-dev.cloudmentor.academy';
+export const API_BASE_URL = (rawApiBaseUrl || DEFAULT_API_BASE_URL).replace(/\/+$/, '');
+export const API_V1_BASE_URL = API_BASE_URL ? `${API_BASE_URL}/api/v1` : '/api/v1';
+
+export function buildApiUrl(path) {
+  if (!API_BASE_URL) return path;
+  if (!path.startsWith('/')) return `${API_BASE_URL}/${path}`;
+  return `${API_BASE_URL}${path}`;
+}
+
 export const client = axios.create({
-  baseURL: '/api/v1',
+  baseURL: API_V1_BASE_URL,
   headers: { 'Content-Type': 'application/json' },
 });
 

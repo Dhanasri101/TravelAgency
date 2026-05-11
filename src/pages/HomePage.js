@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import Header from '../components/Header';
 import SearchBar from '../components/SearchBar';
 import TourList from '../components/TourList';
+import { buildApiUrl } from '../api/client';
 import './HomePage.css';
 
 export default function HomePage() {
@@ -45,7 +46,7 @@ export default function HomePage() {
       params.set('page', pg ?? 1);
       params.set('pageSize', 6);
 
-      const res = await fetch(`/tours/available?${params}`);
+      const res = await fetch(buildApiUrl(`/tours/available?${params}`));
       if (res.ok) {
         const data = await res.json();
         setTours(data.tours ?? []);

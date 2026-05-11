@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { buildApiUrl } from '../api/client';
 import './SearchBar.css';
 
 const DURATION_OPTIONS = [
@@ -155,7 +156,7 @@ export default function SearchBar({
     if (destination.length < 2) { setSuggestions([]); return; }
     const t = setTimeout(async () => {
       try {
-        const res = await fetch(`/tours/destinations?destination=${encodeURIComponent(destination)}`);
+        const res = await fetch(buildApiUrl(`/tours/destinations?destination=${encodeURIComponent(destination)}`));
         if (res.ok) {
           const data = await res.json();
           setSuggestions(data.destinations || []);
