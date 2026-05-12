@@ -371,7 +371,6 @@ class TourServiceTest {
 
     @Test
     void getAvailableTours_supportsPriceAscSortWithoutError() {
-        when(mongoTemplate.count(any(Query.class), eq(Tour.class))).thenReturn(0L);
         when(mongoTemplate.find(any(Query.class), eq(Tour.class))).thenReturn(List.of());
 
         TourListResponseDTO response = tourService.getAvailableTours(
@@ -382,7 +381,6 @@ class TourServiceTest {
 
     @Test
     void getAvailableTours_supportsPriceDescSortWithoutError() {
-        when(mongoTemplate.count(any(Query.class), eq(Tour.class))).thenReturn(0L);
         when(mongoTemplate.find(any(Query.class), eq(Tour.class))).thenReturn(List.of());
 
         TourListResponseDTO response = tourService.getAvailableTours(

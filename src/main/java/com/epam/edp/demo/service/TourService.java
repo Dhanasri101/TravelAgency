@@ -133,7 +133,7 @@ public class TourService {
             // Price and date sorts need in-memory handling because
             // prices are stored as strings in pricePerDuration map
             // and there is no basePrice field in the database.
-            List<Tour> allTours = mongoTemplate.find(query, Tour.class);
+            List<Tour> allTours = new java.util.ArrayList<>(mongoTemplate.find(query, Tour.class));
             totalItems = allTours.size();
 
             Comparator<Tour> comparator = switch (sortBy) {
