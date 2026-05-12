@@ -16,12 +16,12 @@ public class SignUpRequestDTO {
 
     @NotBlank(message = "First name is required")
     @Size(min = 1, max = 50, message = "First name must be 1-50 characters")
-    @Pattern(regexp = "^[A-Za-zÀ-ÿ' -]+$", message = "First name contains invalid characters")
+    @Pattern(regexp = "^[\\p{L}\\p{M}' -]+$", message = "First name contains invalid characters")
     private String firstName;
 
     @NotBlank(message = "Last name is required")
     @Size(min = 1, max = 50, message = "Last name must be 1-50 characters")
-    @Pattern(regexp = "^[A-Za-zÀ-ÿ' -]+$", message = "Last name contains invalid characters")
+    @Pattern(regexp = "^[\\p{L}\\p{M}' -]+$", message = "Last name contains invalid characters")
     private String lastName;
 
     @NotBlank(message = "Email is required")
