@@ -44,7 +44,7 @@ public class TourService {
     private static final String ANY_DESTINATION   = "Any destination";
 
     private static final Set<String> VALID_SORT_VALUES = Set.of(
-            "RATING_ASC", "RATING_DESC", "PRICE_ASC", "PRICE_DESC");
+            "RATING_ASC", "RATING_DESC", "PRICE_ASC", "PRICE_DESC", "DATE_ASC");
     private static final Set<String> VALID_MEAL_PLANS = Set.of(
             "BB", "HB", "FB", "AI", "RO");
     private static final Set<String> VALID_TOUR_TYPES = Set.of(
@@ -122,10 +122,39 @@ public class TourService {
             throw new IllegalArgumentException("Page size must be >= 1");
         }
 
-        Sort sort = applySortOrder(sortBy);
-        long totalItems = mongoTemplate.count(query, Tour.class);
-        query.with(PageRequest.of(page - 1, pageSize, sort));
-        List<Tour> tours = mongoTemplate.find(query, Tour.class);
+        boolean inMemorySort = "PRICE_ASC".equals(sortBy)
+                || "PRICE_DESC".equals(sortBy)
+                || "DATE_ASC".equals(sortBy);
+
+        long totalItems;
+        List<Tour> tours;
+
+        if (inMemorySort) {
+            // Price and date sorts need in-memory handling because
+            // prices are stored as strings in pricePerDuration map
+            // and there is no basePrice field in the database.
+            List<Tour> allTours = mongoTemplate.find(query, Tour.class);
+            totalItems = allTours.size();
+
+            Comparator<Tour> comparator = switch (sortBy) {
+                case "PRICE_ASC"  -> Comparator.comparingDouble(this::getLowestPrice);
+                case "PRICE_DESC" -> Comparator.comparingDouble(this::getLowestPrice).reversed();
+                case "DATE_ASC"   -> Comparator.comparing(this::getEarliestStartDate,
+                        Comparator.nullsLast(Comparator.naturalOrder()));
+                default -> Comparator.comparingDouble(this::getLowestPrice);
+            };
+
+            allTours.sort(comparator);
+
+            int fromIndex = (page - 1) * pageSize;
+            int toIndex = Math.min(fromIndex + pageSize, allTours.size());
+            tours = fromIndex < allTours.size() ? allTours.subList(fromIndex, toIndex) : List.of();
+        } else {
+            Sort sort = applySortOrder(sortBy);
+            totalItems = mongoTemplate.count(query, Tour.class);
+            query.with(PageRequest.of(page - 1, pageSize, sort));
+            tours = mongoTemplate.find(query, Tour.class);
+        }
 
         int totalPages = (int) Math.ceil((double) totalItems / pageSize);
 
@@ -243,10 +272,30 @@ public class TourService {
         }
         return switch (sortBy) {
             case "RATING_ASC" -> Sort.by(Sort.Direction.ASC,  "rating");
-            case "PRICE_DESC" -> Sort.by(Sort.Direction.DESC, "basePrice");
-            case "PRICE_ASC"  -> Sort.by(Sort.Direction.ASC,  "basePrice");
             default           -> Sort.by(Sort.Direction.DESC, "rating");
         };
+    }
+
+    private double getLowestPrice(Tour tour) {
+        if (tour.getPricePerDuration() == null || tour.getPricePerDuration().isEmpty()) {
+            return Double.MAX_VALUE;
+        }
+        return tour.getPricePerDuration().values().stream()
+                .map(p -> p.replaceAll("[^0-9.]", ""))
+                .filter(s -> !s.isEmpty())
+                .mapToDouble(Double::parseDouble)
+                .min()
+                .orElse(Double.MAX_VALUE);
+    }
+
+    private LocalDate getEarliestStartDate(Tour tour) {
+        if (tour.getStartDates() == null || tour.getStartDates().isEmpty()) {
+            return null;
+        }
+        return tour.getStartDates().stream()
+                .filter(d -> d != null)
+                .min(Comparator.naturalOrder())
+                .orElse(null);
     }
 
     private Sort applyReviewSortOrder(String sortBy) {
