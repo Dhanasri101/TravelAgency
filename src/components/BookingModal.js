@@ -174,10 +174,12 @@ export default function BookingModal({ tour, onClose }) {
     });
   }, [adults, children]);
 
-  /* Set default mealPlan when tourDetail loads */
+  /* Set default mealPlan (raw code) when tourDetail loads */
   useEffect(() => {
     if (tourDetail?.mealPlans?.length && !mealPlan) {
-      setMealPlan(tourDetail.mealPlans[0]);
+      const firstPlan = tourDetail.mealPlans[0];
+      const code = firstPlan.match(/\(([^)]+)\)$/)?.[1] || firstPlan;
+      setMealPlan(code);
     }
   }, [tourDetail, mealPlan]);
 
@@ -435,9 +437,13 @@ export default function BookingModal({ tour, onClose }) {
                     ) : (tourDetail?.mealPlans || []).length === 0 ? (
                       <option value="">No meal plans available</option>
                     ) : (
-                      (tourDetail?.mealPlans || []).map((mp) => (
-                        <option key={mp} value={mp}>{mp}</option>
-                      ))
+                      (tourDetail?.mealPlans || []).map((mp) => {
+                        // Backend stores codes (BB, HB...) but TourService formats them
+                        // to display names e.g. "Half-board (HB)". Extract the raw code
+                        // from inside the parentheses so the payload sends the correct value.
+                        const code = mp.match(/\(([^)]+)\)$/)?.[1] || mp;
+                        return <option key={mp} value={code}>{mp}</option>;
+                      })
                     )}
                   </select>
                   <ChevronIcon />

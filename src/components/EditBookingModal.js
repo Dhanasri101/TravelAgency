@@ -142,7 +142,9 @@ export default function EditBookingModal({ booking, onClose, onSaved }) {
   /* Set default meal plan */
   useEffect(() => {
     if (tourDetail?.mealPlans?.length && !mealPlan) {
-      setMealPlan(booking.rawMealPlan || tourDetail.mealPlans[0]);
+      const fallback = tourDetail.mealPlans[0];
+      const fallbackCode = fallback.match(/\(([^)]+)\)$/)?.[1] || fallback;
+      setMealPlan(booking.rawMealPlan || fallbackCode);
     }
   }, [tourDetail, mealPlan, booking.rawMealPlan]);
 
@@ -326,9 +328,13 @@ export default function EditBookingModal({ booking, onClose, onSaved }) {
                 <div className="ebm-select-row">
                   <ForkIcon />
                   <select value={mealPlan} onChange={(e) => setMealPlan(e.target.value)}>
-                    {(tourDetail?.mealPlans || [booking.rawMealPlan]).filter(Boolean).map((mp) => (
-                      <option key={mp} value={mp}>{mp}</option>
-                    ))}
+                    {(tourDetail?.mealPlans || [booking.rawMealPlan]).filter(Boolean).map((mp) => {
+                      // Backend stores codes (BB, HB...) but TourService formats them
+                      // to display names e.g. "Half-board (HB)". Extract the raw code
+                      // from inside the parentheses so the payload sends the correct value.
+                      const code = mp.match(/\(([^)]+)\)$/)?.[1] || mp;
+                      return <option key={mp} value={code}>{mp}</option>;
+                    })}
                   </select>
                   <ChevronIcon />
                 </div>
