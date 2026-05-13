@@ -215,6 +215,10 @@ export default function BookingModal({ tour, onClose }) {
       setError('Please select a date and duration.');
       return;
     }
+    if (!mealPlan || mealPlan.trim() === '') {
+      setError('Please select a meal plan.');
+      return;
+    }
 
     const dateStr = new Date(selected.date).toISOString().split('T')[0];
 
@@ -424,10 +428,17 @@ export default function BookingModal({ tour, onClose }) {
                   <select
                     value={mealPlan}
                     onChange={(e) => setMealPlan(e.target.value)}
+                    disabled={fetchLoading}
                   >
-                    {(tourDetail?.mealPlans || []).map((mp) => (
-                      <option key={mp} value={mp}>{mp}</option>
-                    ))}
+                    {fetchLoading ? (
+                      <option value="">Loading...</option>
+                    ) : (tourDetail?.mealPlans || []).length === 0 ? (
+                      <option value="">No meal plans available</option>
+                    ) : (
+                      (tourDetail?.mealPlans || []).map((mp) => (
+                        <option key={mp} value={mp}>{mp}</option>
+                      ))
+                    )}
                   </select>
                   <ChevronIcon />
                 </div>
@@ -447,7 +458,7 @@ export default function BookingModal({ tour, onClose }) {
               {error && <div className="bm-error">{error}</div>}
 
               {/* Submit */}
-              <button className="bm-submit" type="submit" disabled={loading}>
+              <button className="bm-submit" type="submit" disabled={loading || fetchLoading || !mealPlan}>
                 {loading ? 'Booking…' : 'Book the tour'}
               </button>
             </div>
