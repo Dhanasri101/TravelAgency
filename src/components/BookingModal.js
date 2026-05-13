@@ -162,16 +162,17 @@ export default function BookingModal({ tour, onClose }) {
   const [error,     setError]       = useState('');
   const [confirmData, setConfirmData] = useState(null);
 
-  /* Sync personal details array with number of adults */
+  /* Sync personal details array with total guests (adults + children) */
   useEffect(() => {
+    const totalGuests = adults + children;
     setPersonalDetails(prev => {
-      if (adults > prev.length) {
-        const extra = Array.from({ length: adults - prev.length }, () => ({ firstName: '', lastName: '' }));
+      if (totalGuests > prev.length) {
+        const extra = Array.from({ length: totalGuests - prev.length }, () => ({ firstName: '', lastName: '' }));
         return [...prev, ...extra];
       }
-      return prev.slice(0, adults);
+      return prev.slice(0, totalGuests);
     });
-  }, [adults]);
+  }, [adults, children]);
 
   /* Set default mealPlan when tourDetail loads */
   useEffect(() => {
@@ -232,8 +233,17 @@ export default function BookingModal({ tour, onClose }) {
       const res = await client.post('/bookings', payload);
       setConfirmData(res.data);
     } catch (err) {
-      const msg = err.response?.data?.message || err.response?.data || err.message;
-      setError(typeof msg === 'string' ? msg : 'Booking failed. Please try again.');
+      // Handle validation errors with field-specific messages
+      if (err.response?.data?.fieldErrors) {
+        const fieldErrors = err.response.data.fieldErrors;
+        const errorMessages = Object.entries(fieldErrors)
+          .map(([field, message]) => `${field}: ${message}`)
+          .join('; ');
+        setError(errorMessages || 'Invalid input provided');
+      } else {
+        const msg = err.response?.data?.message || err.response?.data || err.message;
+        setError(typeof msg === 'string' ? msg : 'Booking failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -312,10 +322,16 @@ export default function BookingModal({ tour, onClose }) {
         ) : (
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
             {/* ── Personal details ─────────────────────────────── */}
-            {personalDetails.map((person, idx) => (
+            {personalDetails.map((person, idx) => {
+              const isChild = idx >= adults;
+              const guestLabel = isChild 
+                ? ` (Child ${idx - adults + 1})` 
+                : (adults > 1 ? ` (Adult ${idx + 1})` : '');
+              
+              return (
               <div key={idx}>
                 <p className="bm-section-title">
-                  Personal details{adults > 1 ? ` (Customer ${idx + 1})` : ''}
+                  Personal details{guestLabel}
                 </p>
                 <div className="bm-personal-row">
                   <div className="bm-field">
@@ -350,7 +366,8 @@ export default function BookingModal({ tour, onClose }) {
                   </div>
                 </div>
               </div>
-            ))}
+            );
+            })}
 
             {/* ── Tour details ──────────────────────────────────── */}
             <div>
