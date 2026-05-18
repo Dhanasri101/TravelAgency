@@ -1,6 +1,7 @@
 package com.epam.edp.demo.service;
 
 import com.epam.edp.demo.dto.BookedTourListResponseDTO;
+import com.epam.edp.demo.dto.BookingEvent;
 import com.epam.edp.demo.dto.CreateBookingRequestDTO;
 import com.epam.edp.demo.dto.CreateBookingResponseDTO;
 import com.epam.edp.demo.dto.PersonalDetailDTO;
@@ -41,12 +42,20 @@ public class BookingService {
     private final UserRepository userRepository;
     private final ConcurrentMap<String, ReentrantLock> tourBookingLocks = new ConcurrentHashMap<>();
 
+    /** Optional — only wired when RabbitMQ is enabled (app.rabbitmq.enabled=true). */
+    private BookingEventPublisher bookingEventPublisher;
+
     public BookingService(BookingRepository bookingRepository,
                           TourRepository tourRepository,
                           UserRepository userRepository) {
         this.bookingRepository = bookingRepository;
         this.tourRepository = tourRepository;
         this.userRepository = userRepository;
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setBookingEventPublisher(BookingEventPublisher bookingEventPublisher) {
+        this.bookingEventPublisher = bookingEventPublisher;
     }
 
     // ─────────────────────────────────────────────
@@ -135,6 +144,9 @@ public class BookingService {
         // Build confirmation message
         String details = buildConfirmationMessage(tour, req);
 
+        // Publish event to RabbitMQ (non-blocking)
+        publishEvent("BOOKING_CREATED", booking, tour);
+
         return CreateBookingResponseDTO.builder()
                 .freeCancelation(freeCancelation)
                 .details(details)
@@ -157,7 +169,44 @@ public class BookingService {
         List<Booking> bookings = bookingRepository.findByUserId(userId);
 
         List<BookedTourListResponseDTO.BookingItem> items = bookings.stream()
-                .map(this::mapToBookingItem)
+                .map(b -> mapToBookingItem(b, null))
+                .collect(Collectors.toList());
+
+        return BookedTourListResponseDTO.builder()
+                .bookings(items)
+                .build();
+    }
+
+    // ─────────────────────────────────────────────
+    // Get bookings for an agent (US8)
+    // ─────────────────────────────────────────────
+    public BookedTourListResponseDTO getBookingsForAgent(String agentId, String authenticatedUserId) {
+
+        // Verify the authenticated user is the agent themselves
+        if (!authenticatedUserId.equals(agentId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "You can only view bookings for your own tours");
+        }
+
+        // Find all tours assigned to this agent
+        List<Tour> agentTours = tourRepository.findByAssignedAgentId(agentId);
+        if (agentTours.isEmpty()) {
+            return BookedTourListResponseDTO.builder().bookings(List.of()).build();
+        }
+
+        List<String> tourIds = agentTours.stream()
+                .map(Tour::getId)
+                .collect(Collectors.toList());
+
+        // Find all bookings for those tours
+        List<Booking> bookings = bookingRepository.findByTourIdIn(tourIds);
+
+        List<BookedTourListResponseDTO.BookingItem> items = bookings.stream()
+                .map(b -> {
+                    // Look up the customer who made the booking
+                    BookedTourListResponseDTO.CustomerDetailsDTO customerDetails = buildCustomerDetailsDTO(b.getUserId());
+                    return mapToBookingItem(b, customerDetails);
+                })
                 .collect(Collectors.toList());
 
         return BookedTourListResponseDTO.builder()
@@ -203,6 +252,9 @@ public class BookingService {
         if (tour != null) {
             tourRepository.decrementBookedCountIfPositive(tour.getId());
         }
+
+        // Publish cancellation event (non-blocking)
+        publishEvent("BOOKING_CANCELLED", booking, tour);
 
         return freeCancelDeadline;
     }
@@ -336,6 +388,11 @@ public class BookingService {
 
         if (!toFinish.isEmpty()) {
             bookingRepository.saveAll(toFinish);
+            // Publish BOOKING_FINISHED events (non-blocking)
+            toFinish.forEach(b -> {
+                Tour t = tourRepository.findById(b.getTourId()).orElse(null);
+                publishEvent("BOOKING_FINISHED", b, t);
+            });
         }
     }
 
@@ -343,7 +400,8 @@ public class BookingService {
     // Private helpers
     // ─────────────────────────────────────────────
 
-    private BookedTourListResponseDTO.BookingItem mapToBookingItem(Booking booking) {
+    private BookedTourListResponseDTO.BookingItem mapToBookingItem(
+            Booking booking, BookedTourListResponseDTO.CustomerDetailsDTO customerDetails) {
         Tour tour = tourRepository.findById(booking.getTourId()).orElse(null);
 
         String tourName     = resolveTourName(booking, tour);
@@ -370,6 +428,19 @@ public class BookingService {
                 .rawChildren(booking.getChildren())
                 .freeCancellationDate(resolveFreeCancellationDate(booking, tour))
                 .personalDetails(mapPersonalDetailItems(booking))
+                .customerDetails(customerDetails)
+                .build();
+    }
+
+    private BookedTourListResponseDTO.CustomerDetailsDTO buildCustomerDetailsDTO(String userId) {
+        if (userId == null) return null;
+        User customer = userRepository.findById(userId).orElse(null);
+        if (customer == null) return null;
+        String name = (customer.getFirstName() + " " + customer.getLastName()).trim();
+        return BookedTourListResponseDTO.CustomerDetailsDTO.builder()
+                .name(name)
+                .email(customer.getEmail())
+                .phone(customer.getPhone())
                 .build();
     }
 
@@ -535,6 +606,58 @@ public class BookingService {
         } catch (NumberFormatException e) {
             return 0;
         }
+    }
+
+    // ─────────────────────────────────────────────
+    // RabbitMQ event helper
+    // ─────────────────────────────────────────────
+
+    private void publishEvent(String eventType, Booking booking, Tour tour) {
+        if (bookingEventPublisher == null) return;
+
+        // Resolve agent info from tour
+        String agentId = null, agentName = null, agentEmail = null;
+        if (tour != null && tour.getAssignedAgentId() != null) {
+            agentId = tour.getAssignedAgentId();
+            User agent = userRepository.findById(agentId).orElse(null);
+            if (agent != null) {
+                agentName = (agent.getFirstName() + " " + agent.getLastName()).trim();
+                agentEmail = agent.getEmail();
+            }
+        }
+
+        // Parse revenue from totalPrice (e.g. "$2000" → 2000)
+        long revenue = 0;
+        if (booking.getTotalPrice() != null) {
+            try {
+                revenue = Long.parseLong(booking.getTotalPrice().replaceAll("[^0-9]", ""));
+            } catch (NumberFormatException ignored) {
+                revenue = 1000L * Math.max(booking.getAdults(), 1); // fallback mock
+            }
+        } else {
+            revenue = 1000L * Math.max(booking.getAdults(), 1); // mock: $1000 per person
+        }
+
+        BookingEvent event = BookingEvent.builder()
+                .eventType(eventType)
+                .bookingId(booking.getId())
+                .tourId(booking.getTourId())
+                .tourName(tour != null ? tour.getName() : booking.getTourName())
+                .destination(tour != null ? tour.getDestination() : booking.getDestination())
+                .agentId(agentId)
+                .agentName(agentName)
+                .agentEmail(agentEmail)
+                .userId(booking.getUserId())
+                .adults(booking.getAdults())
+                .children(booking.getChildren())
+                .revenueAmount(revenue)
+                .tourRating(tour != null ? tour.getRating() : null)
+                .tourReviewCount(tour != null ? tour.getReviewCount() : null)
+                .bookingDate(booking.getDate() != null ? booking.getDate().toString() : null)
+                .duration(booking.getDuration())
+                .build();
+
+        bookingEventPublisher.publish(event);
     }
 
     private String buildConfirmationMessage(Tour tour, CreateBookingRequestDTO req) {

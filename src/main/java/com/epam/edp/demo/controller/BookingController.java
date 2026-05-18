@@ -51,18 +51,33 @@ public class BookingController {
 
     /**
      * GET /api/v1/bookings?userId=...
-     * Retrieve all bookings for a specific user — authenticated users only.
+     * GET /api/v1/bookings?agentId=...
+     * Retrieve all bookings for a specific user OR all bookings for an agent's tours — authenticated users only.
      */
     @GetMapping
     public ResponseEntity<BookedTourListResponseDTO> getBookings(
-            @RequestParam String userId
+            @RequestParam(required = false) String userId,
+            @RequestParam(required = false) String agentId
     ) {
-        if (userId == null || userId.isBlank() || !OBJECT_ID_PATTERN.matcher(userId.trim()).matches()) {
-            throw new IllegalArgumentException("Invalid userId format");
-        }
         String authenticatedUserId = getAuthenticatedUserId();
-        BookedTourListResponseDTO response = bookingService.getBookingsForUser(userId, authenticatedUserId);
-        return ResponseEntity.ok(response);
+
+        if (userId != null && !userId.isBlank()) {
+            if (!OBJECT_ID_PATTERN.matcher(userId.trim()).matches()) {
+                throw new IllegalArgumentException("Invalid userId format");
+            }
+            BookedTourListResponseDTO response = bookingService.getBookingsForUser(userId, authenticatedUserId);
+            return ResponseEntity.ok(response);
+        }
+
+        if (agentId != null && !agentId.isBlank()) {
+            if (!OBJECT_ID_PATTERN.matcher(agentId.trim()).matches()) {
+                throw new IllegalArgumentException("Invalid agentId format");
+            }
+            BookedTourListResponseDTO response = bookingService.getBookingsForAgent(agentId, authenticatedUserId);
+            return ResponseEntity.ok(response);
+        }
+
+        throw new IllegalArgumentException("Either userId or agentId query parameter is required");
     }
 
     /**

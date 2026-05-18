@@ -14,6 +14,8 @@ public interface BookingRepository extends MongoRepository<Booking, String> {
 
     List<Booking> findByTourId(String tourId);
 
+    List<Booking> findByTourIdIn(java.util.Collection<String> tourIds);
+
     List<Booking> findByState(BookingState state);
 }
 
