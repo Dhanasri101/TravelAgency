@@ -11,7 +11,7 @@ import java.io.IOException;
 import java.time.LocalDate;
 
 /**
- * Triggers weekly report generation every Monday at 08:00 UTC,
+ * Triggers weekly report generation every Monday at 14:00 IST (Asia/Kolkata),
  * covering the previous Monday-to-Sunday period.
  */
 @Component
@@ -29,7 +29,7 @@ public class WeeklyReportScheduler {
     }
 
     /**
-     * Runs every Monday at 08:00 UTC.
+     * Runs every Monday at 14:00 IST (Asia/Kolkata) = 08:30 UTC.
      * Generates the report for the previous week (Mon–Sun).
      */
     @Scheduled(cron = "0 0 14 * * MON", zone = "Asia/Kolkata")

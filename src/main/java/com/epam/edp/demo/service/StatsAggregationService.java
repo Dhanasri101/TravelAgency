@@ -20,224 +20,168 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * Aggregates booking records into weekly statistics rows, persists the results
- * to dedicated MongoDB collections (agent_report_records / tour_report_records),
- * and returns them for Excel report generation.
+ * Aggregates booking records into weekly statistics, persists them to
+ * {@code agent_report_records} / {@code tour_report_records} and returns
+ * the saved documents for Excel report generation.
  *
- * <p><b>Columns produced (matching the spec template):</b>
- * <ul>
- *   <li>Agent Performance: Name, E-mail, Period Start, Period End, Tours Sold,
- *       Delta Tours Sold %, Avg Feedback (1-5), Min Feedback (1-5),
- *       Delta Avg Feedback %, Revenue (USD)</li>
- *   <li>Sales Statistics: Tour Name, Destination, Period Start, Period End, Tours Sold,
- *       Delta Tours Sold %, Avg Feedback (1-5), Min Feedback (1-5),
- *       Delta Avg Feedback %, Revenue (USD)</li>
- * </ul>
+ * <p>The MongoDB models are used directly as the data model — no intermediate
+ * row DTOs exist.
  */
 @Service
 public class StatsAggregationService {
 
     private static final Logger log = LoggerFactory.getLogger(StatsAggregationService.class);
 
-    private final BookingRecordRepository bookingRepo;
+    private final BookingRecordRepository    bookingRepo;
     private final AgentReportRecordRepository agentReportRepo;
-    private final TourReportRecordRepository tourReportRepo;
+    private final TourReportRecordRepository  tourReportRepo;
 
     public StatsAggregationService(BookingRecordRepository bookingRepo,
                                    AgentReportRecordRepository agentReportRepo,
                                    TourReportRecordRepository tourReportRepo) {
-        this.bookingRepo    = bookingRepo;
+        this.bookingRepo     = bookingRepo;
         this.agentReportRepo = agentReportRepo;
         this.tourReportRepo  = tourReportRepo;
     }
 
-    // ─────────────────────────────────────────────
-    // Agent performance rows
-    // ─────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────────────
+    // Compute, persist and return
+    // ─────────────────────────────────────────────────────────────────────────
 
     /**
-     * Computes agent-performance stats for {@code weekStart..weekEnd},
-     * compares with the previous week, upserts results into MongoDB,
-     * and returns the rows for Excel generation.
+     * Computes agent-performance stats for the given week, compares with the
+     * previous week to calculate deltas, upserts results into MongoDB and
+     * returns the persisted rows ready for Excel generation.
      */
-    public List<AgentRow> getAgentPerformance(LocalDate weekStart, LocalDate weekEnd) {
+    public List<AgentReportRecord> getAgentPerformance(LocalDate weekStart, LocalDate weekEnd) {
         List<BookingRecord> current  = fetchCreated(weekStart, weekEnd);
         List<BookingRecord> previous = fetchCreated(weekStart.minusWeeks(1), weekEnd.minusWeeks(1));
 
-        Map<String, List<BookingRecord>> byAgent     = groupByAgent(current);
-        Map<String, List<BookingRecord>> prevByAgent = groupByAgent(previous);
+        Map<String, List<BookingRecord>> byAgent     = groupBy(current,  BookingRecord::getAgentId);
+        Map<String, List<BookingRecord>> prevByAgent = groupBy(previous, BookingRecord::getAgentId);
 
-        List<AgentRow> rows = byAgent.entrySet().stream()
+        List<AgentReportRecord> rows = byAgent.entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
-                .map(e -> {
-                    String agentId = e.getKey();
-                    List<BookingRecord> records     = e.getValue();
-                    List<BookingRecord> prevRecords = prevByAgent.getOrDefault(agentId, List.of());
-
-                    long   toursSold        = records.size();
-                    long   prevToursSold    = prevRecords.size();
-                    double avgRating        = avgRating(records);
-                    double prevAvgRating    = avgRating(prevRecords);
-                    double minRating        = minRating(records);
-                    long   revenue          = totalRevenue(records);
-                    long   prevRevenue      = totalRevenue(prevRecords);
-
-                    return new AgentRow(
-                            agentName(records),
-                            agentEmail(records),
-                            weekStart,
-                            weekEnd,
-                            toursSold,
-                            changePct(toursSold, prevToursSold),
-                            avgRating,
-                            minRating,
-                            changePct(avgRating, prevAvgRating),
-                            revenue,
-                            changePct(revenue, prevRevenue)
-                    );
-                })
+                .map(e -> buildAgentRecord(
+                        e.getKey(), e.getValue(),
+                        prevByAgent.getOrDefault(e.getKey(), List.of()),
+                        weekStart, weekEnd))
                 .collect(Collectors.toList());
 
-        // Persist / upsert into agent_report_records
-        rows.forEach(r -> saveAgentRow(r, weekStart, weekEnd, byAgent));
-        log.info("Saved {} agent report rows for period {} – {}", rows.size(), weekStart, weekEnd);
+        rows.forEach(r -> upsertAgent(r, weekStart, weekEnd));
+        log.info("Saved {} agent report rows for {} – {}", rows.size(), weekStart, weekEnd);
         return rows;
     }
 
-    // ─────────────────────────────────────────────
-    // Sales statistics rows
-    // ─────────────────────────────────────────────
-
     /**
-     * Computes tour sales stats for {@code weekStart..weekEnd},
-     * compares with the previous week, upserts results into MongoDB,
-     * and returns the rows for Excel generation.
+     * Computes tour sales stats for the given week, compares with the previous
+     * week, upserts results into MongoDB and returns the persisted rows.
      */
-    public List<TourRow> getTourStatistics(LocalDate weekStart, LocalDate weekEnd) {
+    public List<TourReportRecord> getTourStatistics(LocalDate weekStart, LocalDate weekEnd) {
         List<BookingRecord> current  = fetchCreated(weekStart, weekEnd);
         List<BookingRecord> previous = fetchCreated(weekStart.minusWeeks(1), weekEnd.minusWeeks(1));
 
-        Map<String, List<BookingRecord>> byTour     = groupByTour(current);
-        Map<String, List<BookingRecord>> prevByTour = groupByTour(previous);
+        Map<String, List<BookingRecord>> byTour     = groupBy(current,  BookingRecord::getTourId);
+        Map<String, List<BookingRecord>> prevByTour = groupBy(previous, BookingRecord::getTourId);
 
-        List<TourRow> rows = byTour.entrySet().stream()
-                .sorted(Comparator.comparingLong((Map.Entry<String, List<BookingRecord>> e)
-                        -> totalRevenue(e.getValue())).reversed())
-                .map(e -> {
-                    String tourId = e.getKey();
-                    List<BookingRecord> records     = e.getValue();
-                    List<BookingRecord> prevRecords = prevByTour.getOrDefault(tourId, List.of());
-
-                    long   toursSold        = records.size();
-                    long   prevToursSold    = prevRecords.size();
-                    double avgRating        = avgRating(records);
-                    double prevAvgRating    = avgRating(prevRecords);
-                    double minRating        = minRating(records);
-                    long   revenue          = totalRevenue(records);
-                    long   prevRevenue      = totalRevenue(prevRecords);
-
-                    return new TourRow(
-                            tourName(records),
-                            destination(records),
-                            weekStart,
-                            weekEnd,
-                            toursSold,
-                            changePct(toursSold, prevToursSold),
-                            avgRating,
-                            minRating,
-                            changePct(avgRating, prevAvgRating),
-                            revenue,
-                            changePct(revenue, prevRevenue)
-                    );
-                })
+        List<TourReportRecord> rows = byTour.entrySet().stream()
+                .sorted(Comparator.comparingLong(
+                        (Map.Entry<String, List<BookingRecord>> e) -> totalRevenue(e.getValue()))
+                        .reversed())
+                .map(e -> buildTourRecord(
+                        e.getKey(), e.getValue(),
+                        prevByTour.getOrDefault(e.getKey(), List.of()),
+                        weekStart, weekEnd))
                 .collect(Collectors.toList());
 
-        // Persist / upsert into tour_report_records
-        rows.forEach(r -> saveTourRow(r, weekStart, weekEnd, byTour));
-        log.info("Saved {} tour report rows for period {} – {}", rows.size(), weekStart, weekEnd);
+        rows.forEach(r -> upsertTour(r, weekStart, weekEnd));
+        log.info("Saved {} tour report rows for {} – {}", rows.size(), weekStart, weekEnd);
         return rows;
     }
 
-    // ─────────────────────────────────────────────
-    // Read stored results from MongoDB
-    // ─────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────────────
+    // Read stored results
+    // ─────────────────────────────────────────────────────────────────────────
 
-    /** Returns previously stored agent-performance rows for the given period. */
-    public List<AgentReportRecord> getStoredAgentRows(LocalDate periodStart, LocalDate periodEnd) {
-        return agentReportRepo.findByPeriodStartAndPeriodEnd(periodStart, periodEnd);
+    public List<AgentReportRecord> getStoredAgentRows(LocalDate start, LocalDate end) {
+        return agentReportRepo.findByPeriodStartAndPeriodEnd(start, end);
     }
 
-    /** Returns previously stored tour-statistics rows for the given period. */
-    public List<TourReportRecord> getStoredTourRows(LocalDate periodStart, LocalDate periodEnd) {
-        return tourReportRepo.findByPeriodStartAndPeriodEndOrderByRevenueUsdDesc(periodStart, periodEnd);
+    public List<TourReportRecord> getStoredTourRows(LocalDate start, LocalDate end) {
+        return tourReportRepo.findByPeriodStartAndPeriodEndOrderByRevenueUsdDesc(start, end);
     }
 
-    // ─────────────────────────────────────────────
-    // Persist helpers
-    // ─────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────────────
+    // Builders
+    // ─────────────────────────────────────────────────────────────────────────
 
-    private void saveAgentRow(AgentRow r, LocalDate start, LocalDate end,
-                               Map<String, List<BookingRecord>> byAgent) {
-        // Determine agentId from the booking records
-        String agentId = byAgent.entrySet().stream()
-                .filter(e -> agentName(e.getValue()).equals(r.name()))
-                .map(Map.Entry::getKey)
-                .findFirst()
-                .orElse(r.email()); // fall back to email as key
-
-        AgentReportRecord record = agentReportRepo
+    private AgentReportRecord buildAgentRecord(String agentId,
+                                               List<BookingRecord> cur,
+                                               List<BookingRecord> prev,
+                                               LocalDate start, LocalDate end) {
+        AgentReportRecord r = agentReportRepo
                 .findByAgentIdAndPeriodStartAndPeriodEnd(agentId, start, end)
                 .orElse(new AgentReportRecord());
 
-        record.setAgentId(agentId);
-        record.setAgentName(r.name());
-        record.setAgentEmail(r.email());
-        record.setPeriodStart(start);
-        record.setPeriodEnd(end);
-        record.setToursSold(r.toursSold());
-        record.setDeltaOfToursSoldPct(r.deltaOfToursSoldPct());
-        record.setAvgFeedbackRate(r.avgFeedbackRate());
-        record.setMinFeedbackRate(r.minFeedbackRate());
-        record.setDeltaOfAvgFeedbackPct(r.deltaOfAvgFeedbackPct());
-        record.setRevenueUsd(r.revenueUsd());
-        record.setDeltaOfRevenuePct(r.deltaOfRevenuePct());
-        record.setGeneratedAt(Instant.now());
-
-        agentReportRepo.save(record);
+        r.setAgentId(agentId);
+        r.setAgentName(firstNonBlank(cur, BookingRecord::getAgentName,  "Unknown"));
+        r.setAgentEmail(firstNonBlank(cur, BookingRecord::getAgentEmail, "Unknown"));
+        r.setPeriodStart(start);
+        r.setPeriodEnd(end);
+        r.setToursSold(cur.size());
+        r.setDeltaOfToursSoldPct(changePct(cur.size(), prev.size()));
+        r.setAvgFeedbackRate(avgRating(cur));
+        r.setMinFeedbackRate(minRating(cur));
+        r.setDeltaOfAvgFeedbackPct(changePct(avgRating(cur), avgRating(prev)));
+        r.setRevenueUsd(totalRevenue(cur));
+        r.setDeltaOfRevenuePct(changePct(totalRevenue(cur), totalRevenue(prev)));
+        r.setGeneratedAt(Instant.now());
+        return r;
     }
 
-    private void saveTourRow(TourRow r, LocalDate start, LocalDate end,
-                              Map<String, List<BookingRecord>> byTour) {
-        String tourId = byTour.entrySet().stream()
-                .filter(e -> tourName(e.getValue()).equals(r.tourName()))
-                .map(Map.Entry::getKey)
-                .findFirst()
-                .orElse(r.tourName());
-
-        TourReportRecord record = tourReportRepo
+    private TourReportRecord buildTourRecord(String tourId,
+                                             List<BookingRecord> cur,
+                                             List<BookingRecord> prev,
+                                             LocalDate start, LocalDate end) {
+        TourReportRecord r = tourReportRepo
                 .findByTourIdAndPeriodStartAndPeriodEnd(tourId, start, end)
                 .orElse(new TourReportRecord());
 
-        record.setTourId(tourId);
-        record.setTourName(r.tourName());
-        record.setDestination(r.destination());
-        record.setPeriodStart(start);
-        record.setPeriodEnd(end);
-        record.setToursSold(r.toursSold());
-        record.setDeltaOfToursSoldPct(r.deltaOfToursSoldPct());
-        record.setAvgFeedbackRate(r.avgFeedbackRate());
-        record.setMinFeedbackRate(r.minFeedbackRate());
-        record.setDeltaOfAvgFeedbackPct(r.deltaOfAvgFeedbackPct());
-        record.setRevenueUsd(r.revenueUsd());
-        record.setDeltaOfRevenuePct(r.deltaOfRevenuePct());
-        record.setGeneratedAt(Instant.now());
-
-        tourReportRepo.save(record);
+        r.setTourId(tourId);
+        r.setTourName(firstNonBlank(cur,    BookingRecord::getTourName,    "Unknown"));
+        r.setDestination(firstNonBlank(cur, BookingRecord::getDestination, "Unknown"));
+        r.setPeriodStart(start);
+        r.setPeriodEnd(end);
+        r.setToursSold(cur.size());
+        r.setDeltaOfToursSoldPct(changePct(cur.size(), prev.size()));
+        r.setAvgFeedbackRate(avgRating(cur));
+        r.setMinFeedbackRate(minRating(cur));
+        r.setDeltaOfAvgFeedbackPct(changePct(avgRating(cur), avgRating(prev)));
+        r.setRevenueUsd(totalRevenue(cur));
+        r.setDeltaOfRevenuePct(changePct(totalRevenue(cur), totalRevenue(prev)));
+        r.setGeneratedAt(Instant.now());
+        return r;
     }
 
-    // ─────────────────────────────────────────────
-    // Query helpers
-    // ─────────────────────────────────────────────
+    // ────────────────────────────────────────────────────────────────────────
+    // Upsert helpers
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private void upsertAgent(AgentReportRecord r, LocalDate start, LocalDate end) {
+        agentReportRepo.findByAgentIdAndPeriodStartAndPeriodEnd(r.getAgentId(), start, end)
+                .ifPresent(existing -> r.setId(existing.getId()));
+        agentReportRepo.save(r);
+    }
+
+    private void upsertTour(TourReportRecord r, LocalDate start, LocalDate end) {
+        tourReportRepo.findByTourIdAndPeriodStartAndPeriodEnd(r.getTourId(), start, end)
+                .ifPresent(existing -> r.setId(existing.getId()));
+        tourReportRepo.save(r);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Aggregation helpers
+    // ─────────────────────────────────────────────────────────────────────────
 
     private List<BookingRecord> fetchCreated(LocalDate from, LocalDate to) {
         Instant start = from.atStartOfDay().toInstant(ZoneOffset.UTC);
@@ -245,107 +189,47 @@ public class StatsAggregationService {
         return bookingRepo.findByEventTypeAndEventTimestampBetween("BOOKING_CREATED", start, end);
     }
 
-    private Map<String, List<BookingRecord>> groupByAgent(List<BookingRecord> records) {
+    private Map<String, List<BookingRecord>> groupBy(List<BookingRecord> records,
+                                                      java.util.function.Function<BookingRecord, String> keyFn) {
         return records.stream()
-                .filter(r -> r.getAgentId() != null)
-                .collect(Collectors.groupingBy(BookingRecord::getAgentId,
-                        LinkedHashMap::new, Collectors.toList()));
-    }
-
-    private Map<String, List<BookingRecord>> groupByTour(List<BookingRecord> records) {
-        return records.stream()
-                .filter(r -> r.getTourId() != null)
-                .collect(Collectors.groupingBy(BookingRecord::getTourId,
-                        LinkedHashMap::new, Collectors.toList()));
+                .filter(r -> keyFn.apply(r) != null)
+                .collect(Collectors.groupingBy(keyFn, LinkedHashMap::new, Collectors.toList()));
     }
 
     private double avgRating(List<BookingRecord> records) {
         return records.stream()
                 .filter(r -> r.getTourRating() != null)
                 .mapToDouble(BookingRecord::getTourRating)
-                .average()
-                .orElse(0.0);
+                .average().orElse(0.0);
     }
 
     private double minRating(List<BookingRecord> records) {
         return records.stream()
                 .filter(r -> r.getTourRating() != null)
                 .mapToDouble(BookingRecord::getTourRating)
-                .min()
-                .orElse(0.0);
+                .min().orElse(0.0);
     }
 
     private long totalRevenue(List<BookingRecord> records) {
         return records.stream().mapToLong(BookingRecord::getRevenueAmount).sum();
     }
 
-    private String agentName(List<BookingRecord> records) {
-        return records.stream().map(BookingRecord::getAgentName)
-                .filter(n -> n != null && !n.isBlank()).findFirst().orElse("Unknown");
-    }
-
-    private String agentEmail(List<BookingRecord> records) {
-        return records.stream().map(BookingRecord::getAgentEmail)
-                .filter(e -> e != null && !e.isBlank()).findFirst().orElse("Unknown");
-    }
-
-    private String tourName(List<BookingRecord> records) {
-        return records.stream().map(BookingRecord::getTourName)
-                .filter(n -> n != null && !n.isBlank()).findFirst().orElse("Unknown");
-    }
-
-    private String destination(List<BookingRecord> records) {
-        return records.stream().map(BookingRecord::getDestination)
-                .filter(d -> d != null && !d.isBlank()).findFirst().orElse("Unknown");
+    private String firstNonBlank(List<BookingRecord> records,
+                                  java.util.function.Function<BookingRecord, String> fn,
+                                  String fallback) {
+        return records.stream().map(fn)
+                .filter(s -> s != null && !s.isBlank())
+                .findFirst().orElse(fallback);
     }
 
     private String changePct(long current, long previous) {
         if (previous == 0) return current > 0 ? "+100%" : "0%";
-        long diff = current - previous;
-        long pct  = Math.round((double) diff / previous * 100);
+        long pct = Math.round((double)(current - previous) / previous * 100);
         return (pct >= 0 ? "+" : "") + pct + "%";
     }
 
     private String changePct(double current, double previous) {
         return changePct(Math.round(current), Math.round(previous));
     }
-
-    // ─────────────────────────────────────────────
-    // Row DTOs (returned to ReportGeneratorService)
-    // ─────────────────────────────────────────────
-
-    /**
-     * Agent Performance row — columns match the spec template exactly.
-     */
-    public record AgentRow(
-            String name,
-            String email,
-            LocalDate periodStart,
-            LocalDate periodEnd,
-            long   toursSold,
-            String deltaOfToursSoldPct,
-            double avgFeedbackRate,
-            double minFeedbackRate,
-            String deltaOfAvgFeedbackPct,
-            long   revenueUsd,
-            String deltaOfRevenuePct
-    ) {}
-
-    /**
-     * Sales Statistics row — columns match the spec template exactly.
-     */
-    public record TourRow(
-            String tourName,
-            String destination,
-            LocalDate periodStart,
-            LocalDate periodEnd,
-            long   toursSold,
-            String deltaOfToursSoldPct,
-            double avgFeedbackRate,
-            double minFeedbackRate,
-            String deltaOfAvgFeedbackPct,
-            long   revenueUsd,
-            String deltaOfRevenuePct
-    ) {}
 }
 

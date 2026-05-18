@@ -67,17 +67,17 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: {{ .Values.appSecrets.secretName }}
-                  key: aws-access-key
+                  key: ses-access-key
             - name: AWS_SECRET_ACCESS_KEY
               valueFrom:
                 secretKeyRef:
                   name: {{ .Values.appSecrets.secretName }}
-                  key: aws-secret-key
+                  key: ses-secret-key
             - name: AWS_SESSION_TOKEN
               valueFrom:
                 secretKeyRef:
                   name: {{ .Values.appSecrets.secretName }}
-                  key: aws-session-token
+                  key: ses-session-token
             # ── Non-sensitive config (plain values from values.yaml) ───────────
             - name: AWS_SES_REGION
               value: {{ .Values.appConfig.awsSesRegion | quote }}

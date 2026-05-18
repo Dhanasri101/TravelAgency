@@ -117,7 +117,8 @@ affinity: {}
 #
 # Required secret keys (all kebab-case, matching run23team3-secret):
 #   mongo-uri, rabbitmq-host, rabbitmq-port, rabbitmq-username,
-#   rabbitmq-password, aws-access-key, aws-secret-key, aws-session-token
+#   rabbitmq-password, aws-access-key, aws-secret-key, aws-session-token,
+#   ses-access-key, ses-secret-key, ses-session-token
 #
 appSecrets:
   # Name of the K8s Secret (same secret used by sprint1)

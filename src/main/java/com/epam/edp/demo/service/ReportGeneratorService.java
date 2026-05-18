@@ -1,16 +1,8 @@
 package com.epam.edp.demo.service;
 
-import com.epam.edp.demo.service.StatsAggregationService.AgentRow;
-import com.epam.edp.demo.service.StatsAggregationService.TourRow;
-import org.apache.poi.ss.usermodel.BorderStyle;
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.CellStyle;
-import org.apache.poi.ss.usermodel.FillPatternType;
-import org.apache.poi.ss.usermodel.Font;
-import org.apache.poi.ss.usermodel.IndexedColors;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.Workbook;
+import com.epam.edp.demo.model.AgentReportRecord;
+import com.epam.edp.demo.model.TourReportRecord;
+import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
 
@@ -22,8 +14,12 @@ import java.util.List;
 
 /**
  * Generates an Excel workbook (.xlsx) with two sheets:
- * 1. Agent Performance
- * 2. Sales Statistics
+ * <ol>
+ *   <li>Agent Performance</li>
+ *   <li>Sales Statistics</li>
+ * </ol>
+ * Reads data directly from {@link AgentReportRecord} and {@link TourReportRecord}
+ * — no intermediate DTO conversion.
  */
 @Service
 public class ReportGeneratorService {
@@ -36,17 +32,13 @@ public class ReportGeneratorService {
         this.stats = stats;
     }
 
-    /**
-     * Builds and returns the Excel file bytes for the given week.
-     */
     public byte[] generateReport(LocalDate weekStart, LocalDate weekEnd) throws IOException {
-        List<AgentRow> agentRows = stats.getAgentPerformance(weekStart, weekEnd);
-        List<TourRow>  tourRows  = stats.getTourStatistics(weekStart, weekEnd);
+        List<AgentReportRecord> agentRows = stats.getAgentPerformance(weekStart, weekEnd);
+        List<TourReportRecord>  tourRows  = stats.getTourStatistics(weekStart, weekEnd);
 
         try (Workbook wb = new XSSFWorkbook()) {
             buildAgentSheet(wb, agentRows);
             buildTourSheet(wb, tourRows);
-
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             wb.write(out);
             return out.toByteArray();
@@ -57,9 +49,10 @@ public class ReportGeneratorService {
     // Sheet 1 – Agent Performance
     // ─────────────────────────────────────────────
 
-    private void buildAgentSheet(Workbook wb, List<AgentRow> rows) {
+    private void buildAgentSheet(Workbook wb, List<AgentReportRecord> rows) {
         Sheet sheet = wb.createSheet("Agent Performance");
-        CellStyle headerStyle = createHeaderStyle(wb);
+        CellStyle header = createHeaderStyle(wb);
+        CellStyle alt    = createAltRowStyle(wb);
 
         String[] headers = {
             "Travel Agent", "TA E-mail",
@@ -68,36 +61,35 @@ public class ReportGeneratorService {
             "Avg Feedback Rate (1-5)", "Min Feedback Rate (1-5)",
             "Delta of Avg Feedback %", "Revenue (USD)"
         };
-        writeHeaderRow(sheet, headers, headerStyle);
+        writeHeaderRow(sheet, headers, header);
 
-        int rowIdx = 1;
-        CellStyle altStyle = createAltRowStyle(wb);
-        for (AgentRow r : rows) {
-            Row row = sheet.createRow(rowIdx);
-            CellStyle style = (rowIdx % 2 == 0) ? altStyle : null;
+        for (int i = 0; i < rows.size(); i++) {
+            AgentReportRecord r = rows.get(i);
+            CellStyle style = (i % 2 == 1) ? alt : null;
+            Row row = sheet.createRow(i + 1);
             int c = 0;
-            writeCell(row, c++, r.name(), style);
-            writeCell(row, c++, r.email(), style);
-            writeCell(row, c++, r.periodStart().format(DATE_FMT), style);
-            writeCell(row, c++, r.periodEnd().format(DATE_FMT), style);
-            writeCell(row, c++, r.toursSold(), style);
-            writeCell(row, c++, r.deltaOfToursSoldPct(), style);
-            writeCell(row, c++, String.format("%.1f", r.avgFeedbackRate()), style);
-            writeCell(row, c++, String.format("%.1f", r.minFeedbackRate()), style);
-            writeCell(row, c++, r.deltaOfAvgFeedbackPct(), style);
-            writeCell(row, c,   formatRevenue(r.revenueUsd()), style);
-            rowIdx++;
+            writeCell(row, c++, r.getAgentName(),                              style);
+            writeCell(row, c++, r.getAgentEmail(),                             style);
+            writeCell(row, c++, r.getPeriodStart().format(DATE_FMT),           style);
+            writeCell(row, c++, r.getPeriodEnd().format(DATE_FMT),             style);
+            writeCell(row, c++, r.getToursSold(),                              style);
+            writeCell(row, c++, r.getDeltaOfToursSoldPct(),                    style);
+            writeCell(row, c++, fmt(r.getAvgFeedbackRate()),                   style);
+            writeCell(row, c++, fmt(r.getMinFeedbackRate()),                   style);
+            writeCell(row, c++, r.getDeltaOfAvgFeedbackPct(),                  style);
+            writeCell(row, c,   formatRevenue(r.getRevenueUsd()),              style);
         }
-        autoSizeColumns(sheet, headers.length);
+        autoSize(sheet, headers.length);
     }
 
     // ─────────────────────────────────────────────
     // Sheet 2 – Sales Statistics
     // ─────────────────────────────────────────────
 
-    private void buildTourSheet(Workbook wb, List<TourRow> rows) {
+    private void buildTourSheet(Workbook wb, List<TourReportRecord> rows) {
         Sheet sheet = wb.createSheet("Sales Statistics");
-        CellStyle headerStyle = createHeaderStyle(wb);
+        CellStyle header = createHeaderStyle(wb);
+        CellStyle alt    = createAltRowStyle(wb);
 
         String[] headers = {
             "Tour Name", "Destination",
@@ -106,31 +98,29 @@ public class ReportGeneratorService {
             "Avg Feedback Rate (1-5)", "Min Feedback Rate (1-5)",
             "Delta of Avg Feedback %", "Revenue (USD)"
         };
-        writeHeaderRow(sheet, headers, headerStyle);
+        writeHeaderRow(sheet, headers, header);
 
-        int rowIdx = 1;
-        CellStyle altStyle = createAltRowStyle(wb);
-        for (TourRow r : rows) {
-            Row row = sheet.createRow(rowIdx);
-            CellStyle style = (rowIdx % 2 == 0) ? altStyle : null;
+        for (int i = 0; i < rows.size(); i++) {
+            TourReportRecord r = rows.get(i);
+            CellStyle style = (i % 2 == 1) ? alt : null;
+            Row row = sheet.createRow(i + 1);
             int c = 0;
-            writeCell(row, c++, r.tourName(), style);
-            writeCell(row, c++, r.destination(), style);
-            writeCell(row, c++, r.periodStart().format(DATE_FMT), style);
-            writeCell(row, c++, r.periodEnd().format(DATE_FMT), style);
-            writeCell(row, c++, r.toursSold(), style);
-            writeCell(row, c++, r.deltaOfToursSoldPct(), style);
-            writeCell(row, c++, String.format("%.1f", r.avgFeedbackRate()), style);
-            writeCell(row, c++, String.format("%.1f", r.minFeedbackRate()), style);
-            writeCell(row, c++, r.deltaOfAvgFeedbackPct(), style);
-            writeCell(row, c,   formatRevenue(r.revenueUsd()), style);
-            rowIdx++;
+            writeCell(row, c++, r.getTourName(),                               style);
+            writeCell(row, c++, r.getDestination(),                            style);
+            writeCell(row, c++, r.getPeriodStart().format(DATE_FMT),           style);
+            writeCell(row, c++, r.getPeriodEnd().format(DATE_FMT),             style);
+            writeCell(row, c++, r.getToursSold(),                              style);
+            writeCell(row, c++, r.getDeltaOfToursSoldPct(),                    style);
+            writeCell(row, c++, fmt(r.getAvgFeedbackRate()),                   style);
+            writeCell(row, c++, fmt(r.getMinFeedbackRate()),                   style);
+            writeCell(row, c++, r.getDeltaOfAvgFeedbackPct(),                  style);
+            writeCell(row, c,   formatRevenue(r.getRevenueUsd()),              style);
         }
-        autoSizeColumns(sheet, headers.length);
+        autoSize(sheet, headers.length);
     }
 
     // ─────────────────────────────────────────────
-    // Helpers
+    // Shared helpers
     // ─────────────────────────────────────────────
 
     private void writeHeaderRow(Sheet sheet, String[] headers, CellStyle style) {
@@ -158,7 +148,6 @@ public class ReportGeneratorService {
         Font font = wb.createFont();
         font.setBold(true);
         font.setColor(IndexedColors.WHITE.getIndex());
-
         CellStyle style = wb.createCellStyle();
         style.setFont(font);
         style.setFillForegroundColor(IndexedColors.DARK_BLUE.getIndex());
@@ -174,14 +163,10 @@ public class ReportGeneratorService {
         return style;
     }
 
-    private void autoSizeColumns(Sheet sheet, int count) {
-        for (int i = 0; i < count; i++) {
-            sheet.autoSizeColumn(i);
-        }
+    private void autoSize(Sheet sheet, int colCount) {
+        for (int i = 0; i < colCount; i++) sheet.autoSizeColumn(i);
     }
 
-    private String formatRevenue(long amount) {
-        // Format as 246,500
-        return String.format("%,d", amount);
-    }
+    private String fmt(double value)       { return String.format("%.1f", value); }
+    private String formatRevenue(long amt) { return String.format("%,d", amt); }
 }
