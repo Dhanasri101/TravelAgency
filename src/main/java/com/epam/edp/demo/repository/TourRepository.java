@@ -20,6 +20,8 @@ public interface TourRepository extends MongoRepository<Tour, String> {
             fields = "{ 'destination': 1 }")
     List<Tour> findByDestinationRegex(String query);
 
+    List<Tour> findByAssignedAgentId(String assignedAgentId);
+
 
     // ─────────────────────────────────────────────
     // US4 — Available tours with dynamic filtering

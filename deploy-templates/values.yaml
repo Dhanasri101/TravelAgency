@@ -114,6 +114,7 @@ affinity: {}
 
 env:
   extraEnv:
+    # ── Core app secrets ──────────────────────────────────────────────
     - name: MONGO_URI
       valueFrom:
         secretKeyRef:
@@ -124,3 +125,40 @@ env:
         secretKeyRef:
           name: run23team3-secret
           key: jwt-secret
+    # ── RabbitMQ ──────────────────────────────────────────────────────
+    - name: RABBITMQ_HOST
+      valueFrom:
+        secretKeyRef:
+          name: run23team3-secret
+          key: rabbitmq-host
+    - name: RABBITMQ_PORT
+      valueFrom:
+        secretKeyRef:
+          name: run23team3-secret
+          key: rabbitmq-port
+    - name: RABBITMQ_USERNAME
+      valueFrom:
+        secretKeyRef:
+          name: run23team3-secret
+          key: rabbitmq-username
+    - name: RABBITMQ_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: run23team3-secret
+          key: rabbitmq-password
+    # ── AWS credentials ───────────────────────────────────────────────
+    - name: AWS_ACCESS_KEY
+      valueFrom:
+        secretKeyRef:
+          name: run23team3-secret
+          key: aws-access-key
+    - name: AWS_SECRET_KEY
+      valueFrom:
+        secretKeyRef:
+          name: run23team3-secret
+          key: aws-secret-key
+    - name: AWS_SESSION_TOKEN
+      valueFrom:
+        secretKeyRef:
+          name: run23team3-secret
+          key: aws-session-token

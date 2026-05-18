@@ -39,6 +39,18 @@ public class BookedTourListResponseDTO {
         private int rawChildren;
         private String freeCancellationDate;
         private java.util.List<PersonalDetailItem> personalDetails;
+        // Agent view: customer who made the booking
+        private CustomerDetailsDTO customerDetails;
+    }
+
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class CustomerDetailsDTO {
+        private String name;
+        private String email;
+        private String phone;
     }
 
     @Getter
