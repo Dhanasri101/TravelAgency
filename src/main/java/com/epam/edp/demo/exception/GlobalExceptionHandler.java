@@ -79,24 +79,6 @@ public class GlobalExceptionHandler {
                 .body(simpleBody(HttpStatus.BAD_REQUEST, "Bad Request", ex.getMessage()));
     }
 
-    @ExceptionHandler(FeedbackNotFoundException.class)
-    public ResponseEntity<Map<String, Object>> handleFeedbackNotFound(FeedbackNotFoundException ex) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(simpleBody(HttpStatus.NOT_FOUND, "Feedback Not Found", ex.getMessage()));
-    }
-
-    @ExceptionHandler(FeedbackNotAllowedException.class)
-    public ResponseEntity<Map<String, Object>> handleFeedbackNotAllowed(FeedbackNotAllowedException ex) {
-        return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(simpleBody(HttpStatus.FORBIDDEN, "Feedback Not Allowed", ex.getMessage()));
-    }
-
-    @ExceptionHandler(DuplicateFeedbackException.class)
-    public ResponseEntity<Map<String, Object>> handleDuplicateFeedback(DuplicateFeedbackException ex) {
-        return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(simpleBody(HttpStatus.CONFLICT, "Duplicate Feedback", ex.getMessage()));
-    }
-
     private static Map<String, Object> simpleBody(HttpStatus status, String error, String message) {
         Map<String, Object> b = new LinkedHashMap<>();
         b.put(KEY_TIMESTAMP, Instant.now());
