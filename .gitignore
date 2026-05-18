@@ -29,3 +29,7 @@ nbdist/
 
 ### Java classes ###
 target/
+
+### Local dev secrets – never commit ###
+src/main/resources/application-local.properties
+

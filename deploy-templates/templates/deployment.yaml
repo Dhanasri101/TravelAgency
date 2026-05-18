@@ -36,6 +36,55 @@ spec:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            # ── Sensitive values from run23team3-secret (kebab-case keys) ──────
+            - name: MONGO_URI
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.appSecrets.secretName }}
+                  key: mongo-uri
+            - name: RABBITMQ_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.appSecrets.secretName }}
+                  key: rabbitmq-host
+            - name: RABBITMQ_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.appSecrets.secretName }}
+                  key: rabbitmq-port
+            - name: RABBITMQ_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.appSecrets.secretName }}
+                  key: rabbitmq-username
+            - name: RABBITMQ_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.appSecrets.secretName }}
+                  key: rabbitmq-password
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.appSecrets.secretName }}
+                  key: aws-access-key
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.appSecrets.secretName }}
+                  key: aws-secret-key
+            - name: AWS_SESSION_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.appSecrets.secretName }}
+                  key: aws-session-token
+            # ── Non-sensitive config (plain values from values.yaml) ───────────
+            - name: AWS_SES_REGION
+              value: {{ .Values.appConfig.awsSesRegion | quote }}
+            - name: SES_SENDER_EMAIL
+              value: {{ .Values.appConfig.sesSenderEmail | quote }}
+            - name: REPORT_RECIPIENT_EMAIL
+              value: {{ .Values.appConfig.reportRecipientEmail | quote }}
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}
