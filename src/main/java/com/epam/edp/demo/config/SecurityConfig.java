@@ -56,6 +56,11 @@ public class SecurityConfig {
                     "/webjars/**"
                 ).permitAll()
                 .requestMatchers("/api/v1/bookings/**").authenticated()
+                .requestMatchers(
+                    org.springframework.http.HttpMethod.GET,
+                    "/api/v1/tours/*/feedback"
+                ).permitAll()
+                .requestMatchers("/api/v1/tours/*/feedback").authenticated()
                 .anyRequest().permitAll()
             )
             .exceptionHandling(e -> e.authenticationEntryPoint((req, res, ex) -> {
