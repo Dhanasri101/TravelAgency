@@ -37,3 +37,6 @@ backend-live.log.*
 backend-start.log.*
 backend-start-plan.log.*
 backend-status.log.*
+
+### secrets ###
+.env

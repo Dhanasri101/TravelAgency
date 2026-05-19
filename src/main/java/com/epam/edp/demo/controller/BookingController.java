@@ -1,6 +1,7 @@
 package com.epam.edp.demo.controller;
 
 import com.epam.edp.demo.dto.BookedTourListResponseDTO;
+import com.epam.edp.demo.dto.ConfirmBookingChangesRequestDTO;
 import com.epam.edp.demo.dto.CreateBookingRequestDTO;
 import com.epam.edp.demo.dto.CreateBookingResponseDTO;
 import com.epam.edp.demo.dto.UpdateBookingRequestDTO;
@@ -111,6 +112,16 @@ public class BookingController {
     ) {
         String authenticatedUserId = getAuthenticatedUserId();
         Map<String, Object> response = bookingService.updateBooking(id, authenticatedUserId, request);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{id}/confirm-changes")
+    public ResponseEntity<Map<String, Object>> confirmBookingChanges(
+            @PathVariable String id,
+            @RequestBody(required = false) ConfirmBookingChangesRequestDTO request
+    ) {
+        String authenticatedUserId = getAuthenticatedUserId();
+        Map<String, Object> response = bookingService.confirmBookingChanges(id, authenticatedUserId, request);
         return ResponseEntity.ok(response);
     }
 
