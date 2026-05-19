@@ -7,6 +7,7 @@ import ConfirmChangesModal from '../components/ConfirmChangesModal';
 import CancelBookingModal from '../components/CancelBookingModal';
 import FeedbackModal from '../components/FeedbackModal';
 import { getFeedback, createFeedback, updateFeedback } from '../api/feedback';
+import DocumentUploadModal from '../components/DocumentUploadModal';
 import './MyToursPage.css';
 
 const STATUS_TABS = ['All tours', 'Booked', 'Confirmed', 'Started', 'Finished', 'Cancelled'];
@@ -180,7 +181,7 @@ function ProgressStepper({ state }) {
   );
 }
 
-function BookingCard({ booking, onCancel, onEdit, currentUserId, feedbackData, onFeedback }) {
+function BookingCard({ booking, onCancel, onEdit, onUpload, currentUserId, feedbackData, onFeedback }) {
   const { tourDetails, travelAgent } = booking;
   const canceledByLabel = getCanceledByLabel(booking.canceledBy, currentUserId);
   const cancelReason = booking.cancelReason?.trim() || '-';
@@ -255,7 +256,9 @@ function BookingCard({ booking, onCancel, onEdit, currentUserId, feedbackData, o
             <>
               <button className="mt-btn-outline" onClick={() => onCancel(booking.id)}>Cancel</button>
               <button className="mt-btn-outline" onClick={() => onEdit(booking)}>Edit</button>
-              <button className="mt-btn-solid">{hasDocuments ? 'Update documents' : 'Upload documents'}</button>
+              <button className="mt-btn-solid" onClick={() => onUpload(booking)}>
+                {hasDocuments ? 'Update documents' : 'Upload documents'}
+              </button>
             </>
           )}
           {showGiveFeedback && (
@@ -297,6 +300,7 @@ export default function MyToursPage() {
   const [confirmData, setConfirmData] = useState(null);
   const [lastEditedBooking, setLastEditedBooking] = useState(null);
   const [cancellingBooking, setCancellingBooking] = useState(null);
+  const [uploadingBooking, setUploadingBooking] = useState(null);
 
   // ── Feedback state ─────────────────────────────────────────────
   // Map of bookingId → { rating, comment } | null (null = no feedback)
@@ -367,23 +371,56 @@ export default function MyToursPage() {
     setEditingBooking(booking);
   };
 
+  const handleUploadDocuments = (booking) => {
+    setUploadingBooking(booking);
+  };
+
+  const handleUploadSuccess = ({ bookingId, documentCount } = {}) => {
+    if (!bookingId) {
+      return;
+    }
+
+    setBookings(prevBookings => prevBookings.map(booking => (
+      booking.id === bookingId
+        ? { ...booking, documentCount }
+        : booking
+    )));
+
+    setUploadingBooking(prevBooking => (
+      prevBooking && prevBooking.id === bookingId
+        ? { ...prevBooking, documentCount }
+        : prevBooking
+    ));
+  };
+
   const handleEditSaved = (response) => {
-    setLastEditedBooking(editingBooking);
+    setLastEditedBooking(response.previewBooking || editingBooking);
     setEditingBooking(null);
     // Show confirmation modal with changes
     setConfirmData(response);
   };
 
-  const handleConfirmChanges = () => {
-    setConfirmData(null);
-    fetchBookings(); // Refresh the list
+  const handleConfirmChanges = async () => {
+    try {
+      if (confirmData?.bookingId && confirmData?.payload) {
+        await client.put(`/bookings/${confirmData.bookingId}`, confirmData.payload);
+      }
+
+      if (confirmData?.bookingId && confirmData?.removedGuestIds?.length) {
+        await client.post(`/bookings/${confirmData.bookingId}/confirm-changes`, {
+          removedGuestIds: confirmData.removedGuestIds,
+        });
+      }
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to finalize booking changes');
+    } finally {
+      setConfirmData(null);
+      fetchBookings();
+    }
   };
 
   const handleDeclineChanges = () => {
     setConfirmData(null);
-    // Just close — the changes are already saved on backend
-    // In a real app you might revert here
-    fetchBookings();
   };
 
   // ── Feedback handlers ──────────────────────────────────────────
@@ -465,6 +502,7 @@ export default function MyToursPage() {
                 booking={booking}
                 onCancel={handleCancel}
                 onEdit={handleEdit}
+                onUpload={handleUploadDocuments}
                 currentUserId={user?.id}
                 feedbackData={feedbackData}
                 onFeedback={handleFeedbackClick}
@@ -495,7 +533,7 @@ export default function MyToursPage() {
       {/* Confirm Changes Modal */}
       {confirmData && (
         <ConfirmChangesModal
-          booking={lastEditedBooking || confirmData}
+          booking={confirmData.previewBooking || lastEditedBooking || confirmData}
           changes={confirmData.changes || []}
           onConfirm={handleConfirmChanges}
           onDecline={handleDeclineChanges}
@@ -531,6 +569,15 @@ export default function MyToursPage() {
             <AlertCloseIcon />
           </button>
         </div>
+      )}
+
+      {/* Document Upload Modal */}
+      {uploadingBooking && (
+        <DocumentUploadModal
+          booking={uploadingBooking}
+          onClose={() => setUploadingBooking(null)}
+          onSuccess={handleUploadSuccess}
+        />
       )}
     </div>
   );
