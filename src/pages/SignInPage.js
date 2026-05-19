@@ -117,7 +117,7 @@ export default function SignInPage() {
           error={fieldErrors.password}
         />
         <div className="forgot-row">
-          <Link to="#">Forgot password?</Link>
+          <Link to="/forgot-password">Forgot password?</Link>
         </div>
         <button className="btn-primary" type="submit" disabled={submitting || !email.trim() || !password}>
           {submitting ? 'Signing in\u2026' : 'Sign in'}
