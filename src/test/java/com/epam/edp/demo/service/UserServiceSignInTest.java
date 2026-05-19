@@ -57,7 +57,7 @@ class UserServiceSignInTest {
         when(repository.findByEmail("john.doe@example.com")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("password", user.getPasswordHash())).thenReturn(true);
         when(repository.save(user)).thenReturn(user);
-        when(jwtService.issue("u-1", "john.doe@example.com", "John"))
+        when(jwtService.issue("u-1", "john.doe@example.com", "John", "CUSTOMER"))
                 .thenReturn(new JwtService.IssuedToken("jwt", Instant.now().plusSeconds(3600)));
 
         userService.signIn(req);
@@ -154,7 +154,7 @@ class UserServiceSignInTest {
         when(passwordEncoder.matches("good", user.getPasswordHash())).thenReturn(true);
         when(repository.save(user)).thenReturn(user);
         Instant exp = Instant.now().plusSeconds(3600);
-        when(jwtService.issue("u-1", "john@example.com", "John"))
+        when(jwtService.issue("u-1", "john@example.com", "John", "CUSTOMER"))
                 .thenReturn(new JwtService.IssuedToken("jwt-token", exp));
 
         SignInResponseDTO response = userService.signIn(request("john@example.com", "good"));
@@ -183,7 +183,7 @@ class UserServiceSignInTest {
         when(repository.findByEmail("john@example.com")).thenReturn(Optional.of(found));
         when(passwordEncoder.matches("good", found.getPasswordHash())).thenReturn(true);
         when(repository.save(found)).thenReturn(saved);
-        when(jwtService.issue("u-1", "john@example.com", "Johnny"))
+        when(jwtService.issue("u-1", "john@example.com", "Johnny", "CUSTOMER"))
                 .thenReturn(new JwtService.IssuedToken("jwt", Instant.now().plusSeconds(3600)));
 
         SignInResponseDTO response = userService.signIn(request("john@example.com", "good"));
@@ -199,14 +199,14 @@ class UserServiceSignInTest {
         when(repository.findByEmail("john@example.com")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("good", user.getPasswordHash())).thenReturn(true);
         when(repository.save(user)).thenReturn(user);
-        when(jwtService.issue("u-1", "john@example.com", "John"))
+        when(jwtService.issue("u-1", "john@example.com", "John", "CUSTOMER"))
                 .thenReturn(new JwtService.IssuedToken("jwt", Instant.now().plusSeconds(3600)));
 
         userService.signIn(request("john@example.com", "good"));
 
         InOrder inOrder = inOrder(repository, jwtService);
         inOrder.verify(repository).save(user);
-        inOrder.verify(jwtService).issue("u-1", "john@example.com", "John");
+        inOrder.verify(jwtService).issue("u-1", "john@example.com", "John", "CUSTOMER");
     }
 
     @Test
@@ -262,7 +262,7 @@ class UserServiceSignInTest {
         when(repository.findByEmail("john@example.com")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("good", user.getPasswordHash())).thenReturn(true);
         when(repository.save(user)).thenReturn(user);
-        when(jwtService.issue("u-1", "john@example.com", "John"))
+        when(jwtService.issue("u-1", "john@example.com", "John", "CUSTOMER"))
                 .thenReturn(new JwtService.IssuedToken("jwt", Instant.now().plusSeconds(3600)));
 
         userService.signIn(request("john@example.com", "good"));

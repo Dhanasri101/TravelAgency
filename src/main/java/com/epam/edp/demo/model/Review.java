@@ -30,6 +30,7 @@ public class Review {
     private Double rate;
     private String comment;
     private LocalDate reviewDate;
+    private boolean hidden = false;
 
     @CreatedDate
     private LocalDateTime createdAt;

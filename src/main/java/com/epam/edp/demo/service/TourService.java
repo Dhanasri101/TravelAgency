@@ -424,19 +424,21 @@ public class TourService {
 
         Sort sort = switch (sortBy == null ? "TOP_RATED_FIRST" : sortBy) {
             case "LOW_RATED_FIRST" -> Sort.by(Sort.Direction.ASC,  "rate");
-            case "NEWEST_FIRST"   -> Sort.by(Sort.Direction.DESC, FIELD_CREATED_AT);
-            case "OLDEST_FIRST"   -> Sort.by(Sort.Direction.ASC,  FIELD_CREATED_AT);
+            case "NEWEST_FIRST"   -> Sort.by(Sort.Direction.DESC, "reviewDate");
+            case "OLDEST_FIRST"   -> Sort.by(Sort.Direction.ASC,  "reviewDate");
             default               -> Sort.by(Sort.Direction.DESC, "rate"); // TOP_RATED_FIRST
         };
 
-        Query countQuery = new Query(Criteria.where(FIELD_TOUR_ID).is(tourId));
+        Query countQuery = new Query(Criteria.where(FIELD_TOUR_ID).is(tourId)
+                .and("hidden").ne(true));
         long totalItems = mongoTemplate.count(countQuery, Review.class);
 
-        Query pagedQuery = new Query(Criteria.where(FIELD_TOUR_ID).is(tourId))
+        Query pagedQuery = new Query(Criteria.where(FIELD_TOUR_ID).is(tourId)
+                .and("hidden").ne(true))
                 .with(PageRequest.of(page - 1, pageSize, sort));
         List<Review> reviews = mongoTemplate.find(pagedQuery, Review.class);
 
-        List<Review> allReviews = reviewRepository.findByTourId(tourId);
+        List<Review> allReviews = reviewRepository.findByTourIdAndHiddenFalse(tourId);
         OptionalDouble avg = allReviews.stream()
                 .filter(r -> r.getRate() != null)
                 .mapToDouble(Review::getRate)

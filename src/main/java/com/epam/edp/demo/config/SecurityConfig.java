@@ -56,6 +56,8 @@ public class SecurityConfig {
                     "/webjars/**"
                 ).permitAll()
                 .requestMatchers("/api/v1/bookings/**").authenticated()
+                .requestMatchers("/api/v1/reports/**").hasRole("ADMIN")
+                .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                 .anyRequest().permitAll()
             )
             .exceptionHandling(e -> e.authenticationEntryPoint((req, res, ex) -> {
