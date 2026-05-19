@@ -16,12 +16,21 @@ import com.epam.edp.demo.dto.SignInResponseDTO;
 import com.epam.edp.demo.dto.SignUpRequestDTO;
 import com.epam.edp.demo.dto.SignUpResponseDTO;
 import com.epam.edp.demo.dto.UserResponseDTO;
+import com.epam.edp.demo.dto.ApiErrorResponseDTO;
 import com.epam.edp.demo.exception.UnauthenticatedException;
 import com.epam.edp.demo.model.User;
 import com.epam.edp.demo.service.UserService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
 @RequestMapping("/api/v1/auth")
+@Tag(name = "Authentication", description = "Authentication and current user endpoints")
 public class AuthController {
 
     private final UserService userService;
@@ -31,17 +40,53 @@ public class AuthController {
     }
 
     @PostMapping("/sign-up")
-    public ResponseEntity<SignUpResponseDTO> signUp(@Valid @RequestBody SignUpRequestDTO request) {
+        @Operation(summary = "Register a new user", description = "Creates a user account with email/password credentials.")
+        @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "User registered successfully",
+                content = @Content(schema = @Schema(implementation = SignUpResponseDTO.class))),
+            @ApiResponse(responseCode = "400", description = "Validation failed or weak password",
+                content = @Content(schema = @Schema(implementation = ApiErrorResponseDTO.class))),
+            @ApiResponse(responseCode = "409", description = "Email already exists",
+                content = @Content(schema = @Schema(implementation = ApiErrorResponseDTO.class)))
+        })
+            public ResponseEntity<SignUpResponseDTO> signUp(
+                @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    description = "Registration details for the new user account.",
+                    required = true)
+                @Valid @RequestBody SignUpRequestDTO request) {
         userService.signUp(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(SignUpResponseDTO.ok());
     }
 
     @PostMapping("/sign-in")
-    public ResponseEntity<SignInResponseDTO> signIn(@Valid @RequestBody SignInRequestDTO request) {
+        @Operation(summary = "Sign in", description = "Authenticates a user and returns an access token.")
+        @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Signed in successfully",
+                content = @Content(schema = @Schema(implementation = SignInResponseDTO.class))),
+            @ApiResponse(responseCode = "400", description = "Validation failed",
+                content = @Content(schema = @Schema(implementation = ApiErrorResponseDTO.class))),
+            @ApiResponse(responseCode = "401", description = "Invalid credentials",
+                content = @Content(schema = @Schema(implementation = ApiErrorResponseDTO.class))),
+            @ApiResponse(responseCode = "423", description = "Account temporarily locked",
+                content = @Content(schema = @Schema(implementation = ApiErrorResponseDTO.class)))
+        })
+            public ResponseEntity<SignInResponseDTO> signIn(
+                @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    description = "Email/password credentials used to obtain a JWT token.",
+                    required = true)
+                @Valid @RequestBody SignInRequestDTO request) {
         return ResponseEntity.ok(userService.signIn(request));
     }
 
     @GetMapping("/me")
+        @Operation(summary = "Get current user", description = "Returns profile details of the authenticated user.")
+        @SecurityRequirement(name = "bearerAuth")
+        @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Current user details",
+                content = @Content(schema = @Schema(implementation = UserResponseDTO.class))),
+            @ApiResponse(responseCode = "401", description = "Missing or invalid token",
+                content = @Content(schema = @Schema(implementation = ApiErrorResponseDTO.class)))
+        })
     public ResponseEntity<UserResponseDTO> me() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !auth.isAuthenticated() || auth.getPrincipal() == null) {
