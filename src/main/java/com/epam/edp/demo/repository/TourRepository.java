@@ -22,6 +22,8 @@ public interface TourRepository extends MongoRepository<Tour, String> {
 
     List<Tour> findByAssignedAgentId(String assignedAgentId);
 
+    List<Tour> findByDestination(String destination);
+
 
     // ─────────────────────────────────────────────
     // US4 — Available tours with dynamic filtering

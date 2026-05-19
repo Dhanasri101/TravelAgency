@@ -1,9 +1,12 @@
 package com.epam.edp.demo;
 
+import com.epam.edp.demo.enums.BookingState;
 import com.epam.edp.demo.enums.Role;
+import com.epam.edp.demo.model.Booking;
 import com.epam.edp.demo.model.Review;
 import com.epam.edp.demo.model.Tour;
 import com.epam.edp.demo.model.User;
+import com.epam.edp.demo.repository.BookingRepository;
 import com.epam.edp.demo.repository.ReviewRepository;
 import com.epam.edp.demo.repository.TourRepository;
 import com.epam.edp.demo.repository.UserRepository;
@@ -13,6 +16,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -26,27 +30,47 @@ public class DataSeeder implements ApplicationRunner {
     private final UserRepository userRepository;
     private final TourRepository tourRepository;
     private final ReviewRepository reviewRepository;
+    private final BookingRepository bookingRepository;
     private final PasswordEncoder passwordEncoder;
 
     public DataSeeder(UserRepository userRepository,
                       TourRepository tourRepository,
                       ReviewRepository reviewRepository,
+                      BookingRepository bookingRepository,
                       PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.tourRepository = tourRepository;
         this.reviewRepository = reviewRepository;
+        this.bookingRepository = bookingRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
     @Override
     public void run(ApplicationArguments args) {
+        seedAdminIfMissing();
         if (tourRepository.count() == 0) {
             seedAgents();
             seedTours();
             seedReviews();
-            System.out.println("✅ Database seeding complete!");
+            seedBookings();
+            System.out.println("\u2705 Database seeding complete!");
         } else {
-            System.out.println("ℹ️  Database already has data — skipping seed.");
+            // Seed bookings separately if they are missing
+            if (bookingRepository.count() == 0) {
+                seedBookings();
+            }
+            System.out.println("\u2139\uFE0F  Database already has data \u2014 skipping seed.");
+        }
+    }
+
+    private void seedAdminIfMissing() {
+        boolean adminExists = userRepository.findAll().stream()
+                .anyMatch(u -> u.getRole() == Role.ADMIN);
+        if (!adminExists) {
+            User admin = new User("Admin", "User", "admin@mail.com",
+                    passwordEncoder.encode("Admin@1234"), Role.ADMIN);
+            userRepository.save(admin);
+            System.out.println("\u2705 Admin user created: admin@mail.com / Admin@1234");
         }
     }
 
@@ -297,6 +321,65 @@ public class DataSeeder implements ApplicationRunner {
 
         reviewRepository.saveAll(reviews);
         System.out.println("✅ Seeded " + reviews.size() + " reviews");
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // BOOKINGS
+    // ─────────────────────────────────────────────────────────────
+    private void seedBookings() {
+        bookingRepository.deleteAll();
+
+        // agent001 -> tour001 (Paris), tour004 (Dubai), tour007 (New York), tour010 (Barcelona)
+        // agent002 -> tour002 (Bali),  tour005 (Tokyo), tour008 (Maldives), tour011 (Swiss Alps)
+        // agent003 -> tour003 (Rome),  tour006 (Santorini), tour009 (Kenya), tour012 (Rajasthan)
+        String[][] agentTours = {
+            {"tour001", "tour004", "tour007", "tour010"},
+            {"tour002", "tour005", "tour008", "tour011"},
+            {"tour003", "tour006", "tour009", "tour012"},
+        };
+        String[][] tourNames = {
+            {"Paris City Escape", "Dubai Luxury Experience", "New York City Adventure", "Barcelona & Costa Brava"},
+            {"Bali Tropical Retreat", "Tokyo & Kyoto Discovery", "Maldives Island Paradise", "Swiss Alps Adventure"},
+            {"Rome & Vatican Tour", "Santorini Sunset Cruise", "Safari in Kenya", "Rajasthan Royal Heritage Tour"},
+        };
+        String[][] destinations = {
+            {"Paris", "Dubai", "New York", "Barcelona"},
+            {"Bali", "Tokyo", "Maldives", "Zurich"},
+            {"Rome", "Santorini", "Nairobi", "Rajasthan"},
+        };
+
+        List<Booking> bookings = new ArrayList<>();
+        int num = 1;
+
+        // Seed 8 bookings per agent per month, Jan 2025 – May 2026
+        for (int year = 2025; year <= 2026; year++) {
+            int maxMonth = (year == 2026) ? 5 : 12;
+            for (int month = 1; month <= maxMonth; month++) {
+                for (int agentIdx = 0; agentIdx < 3; agentIdx++) {
+                    for (int i = 0; i < 8; i++) {
+                        int tourIdx = i % 4;
+                        int day = Math.min(1 + i * 3, 28); // days 1,4,7,10,13,16,19,22
+                        Booking b = new Booking();
+                        b.setId(String.format("book%04d", num++));
+                        b.setUserId(String.format("user%03d", ((num % 28) + 1)));
+                        b.setTourId(agentTours[agentIdx][tourIdx]);
+                        b.setDate(LocalDate.of(year, month, day));
+                        b.setDuration("7 days");
+                        b.setMealPlan("BB");
+                        b.setAdults(2);
+                        b.setChildren(0);
+                        b.setState(BookingState.BOOKED);
+                        b.setTotalPrice("$999");
+                        b.setTourName(tourNames[agentIdx][tourIdx]);
+                        b.setDestination(destinations[agentIdx][tourIdx]);
+                        bookings.add(b);
+                    }
+                }
+            }
+        }
+
+        bookingRepository.saveAll(bookings);
+        System.out.println("\u2705 Seeded " + bookings.size() + " bookings");
     }
 
     // ─────────────────────────────────────────────────────────────

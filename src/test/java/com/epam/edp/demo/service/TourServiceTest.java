@@ -287,7 +287,7 @@ class TourServiceTest {
         Review r1 = review("r1", 5.0, LocalDate.of(2026, 1, 1));
         Review r2 = review("r2", 4.0, LocalDate.of(2026, 1, 2));
         when(mongoTemplate.find(any(Query.class), eq(Review.class))).thenReturn(List.of(r1, r2));
-        when(reviewRepository.findByTourId("tour-1")).thenReturn(List.of(r1, r2, review("r3", 3.0, LocalDate.of(2026, 1, 3))));
+        when(reviewRepository.findByTourIdAndHiddenFalse("tour-1")).thenReturn(List.of(r1, r2, review("r3", 3.0, LocalDate.of(2026, 1, 3))));
 
         ReviewListResponseDTO response = tourService.getReviews("tour-1", "TOP_RATED_FIRST", 1, 2);
 
@@ -304,7 +304,7 @@ class TourServiceTest {
         when(tourRepository.existsById("tour-1")).thenReturn(true);
         when(mongoTemplate.count(any(Query.class), eq(Review.class))).thenReturn(0L);
         when(mongoTemplate.find(any(Query.class), eq(Review.class))).thenReturn(List.of());
-        when(reviewRepository.findByTourId("tour-1")).thenReturn(List.of());
+        when(reviewRepository.findByTourIdAndHiddenFalse("tour-1")).thenReturn(List.of());
 
         tourService.getReviews("tour-1", null, 1, 4);
 
@@ -318,13 +318,13 @@ class TourServiceTest {
         when(tourRepository.existsById("tour-1")).thenReturn(true);
         when(mongoTemplate.count(any(Query.class), eq(Review.class))).thenReturn(0L);
         when(mongoTemplate.find(any(Query.class), eq(Review.class))).thenReturn(List.of());
-        when(reviewRepository.findByTourId("tour-1")).thenReturn(List.of());
+        when(reviewRepository.findByTourIdAndHiddenFalse("tour-1")).thenReturn(List.of());
 
         tourService.getReviews("tour-1", "OLDEST_FIRST", 1, 4);
 
         ArgumentCaptor<Query> captor = ArgumentCaptor.forClass(Query.class);
         verify(mongoTemplate).find(captor.capture(), eq(Review.class));
-        assertEquals(1, captor.getValue().getSortObject().get("createdAt"));
+        assertEquals(1, captor.getValue().getSortObject().get("reviewDate"));
     }
 
     @Test
@@ -332,13 +332,13 @@ class TourServiceTest {
         when(tourRepository.existsById("tour-1")).thenReturn(true);
         when(mongoTemplate.count(any(Query.class), eq(Review.class))).thenReturn(0L);
         when(mongoTemplate.find(any(Query.class), eq(Review.class))).thenReturn(List.of());
-        when(reviewRepository.findByTourId("tour-1")).thenReturn(List.of());
+        when(reviewRepository.findByTourIdAndHiddenFalse("tour-1")).thenReturn(List.of());
 
         tourService.getReviews("tour-1", "NEWEST_FIRST", 1, 4);
 
         ArgumentCaptor<Query> captor = ArgumentCaptor.forClass(Query.class);
         verify(mongoTemplate).find(captor.capture(), eq(Review.class));
-        assertEquals(-1, captor.getValue().getSortObject().get("createdAt"));
+        assertEquals(-1, captor.getValue().getSortObject().get("reviewDate"));
     }
 
     @Test
@@ -347,7 +347,7 @@ class TourServiceTest {
         when(mongoTemplate.count(any(Query.class), eq(Review.class))).thenReturn(0L);
         when(mongoTemplate.find(any(Query.class), eq(Review.class))).thenReturn(List.of());
         Review unrated = review("r1", null, LocalDate.of(2026, 1, 1));
-        when(reviewRepository.findByTourId("tour-1")).thenReturn(List.of(unrated));
+        when(reviewRepository.findByTourIdAndHiddenFalse("tour-1")).thenReturn(List.of(unrated));
 
         ReviewListResponseDTO response = tourService.getReviews("tour-1", "TOP_RATED_FIRST", 1, 4);
 
@@ -359,7 +359,7 @@ class TourServiceTest {
         when(tourRepository.existsById("tour-1")).thenReturn(true);
         when(mongoTemplate.count(any(Query.class), eq(Review.class))).thenReturn(0L);
         when(mongoTemplate.find(any(Query.class), eq(Review.class))).thenReturn(List.of());
-        when(reviewRepository.findByTourId("tour-1")).thenReturn(List.of(
+        when(reviewRepository.findByTourIdAndHiddenFalse("tour-1")).thenReturn(List.of(
                 review("r1", 4.3333, LocalDate.of(2026, 1, 1)),
                 review("r2", 4.3333, LocalDate.of(2026, 1, 2))
         ));

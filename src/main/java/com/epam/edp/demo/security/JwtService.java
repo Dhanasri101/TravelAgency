@@ -16,6 +16,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Map;
 
 @Service
@@ -31,13 +32,7 @@ public class JwtService {
             @Value("${app.jwt.secret}") String base64Secret,
             @Value("${app.jwt.ttl-hours:24}") long ttlHours
     ) {
-        byte[] raw;
-        try {
-            raw = Base64.getDecoder().decode(base64Secret);
-        } catch (IllegalArgumentException e) {
-            log.debug("JWT secret is not valid base64, treating as raw UTF-8: {}", e.getMessage());
-            raw = base64Secret.getBytes(StandardCharsets.UTF_8);
-        }
+        byte[] raw = resolveSecretBytes(base64Secret);
         if (raw.length < MIN_SECRET_BYTES) {
             throw new IllegalStateException(
                     "app.jwt.secret must decode to at least " + MIN_SECRET_BYTES + " bytes for HS256");
@@ -46,12 +41,30 @@ public class JwtService {
         this.ttl = Duration.ofHours(ttlHours);
     }
 
-    public IssuedToken issue(String userId, String email, String firstName) {
+    public static byte[] resolveSecretBytes(String secret) {
+        byte[] rawBytes = secret.getBytes(StandardCharsets.UTF_8);
+        try {
+            byte[] decoded = Base64.getDecoder().decode(secret);
+            if (decoded.length >= MIN_SECRET_BYTES || rawBytes.length < MIN_SECRET_BYTES) {
+                return decoded;
+            }
+            log.debug("JWT secret decodes to fewer than {} bytes; treating long raw secret as UTF-8 instead", MIN_SECRET_BYTES);
+        } catch (IllegalArgumentException e) {
+            log.debug("JWT secret is not valid base64, treating as raw UTF-8: {}", e.getMessage());
+        }
+        return rawBytes;
+    }
+
+    public IssuedToken issue(String userId, String email, String firstName, String role) {
         Instant now = Instant.now();
         Instant exp = now.plus(ttl);
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("email", email);
+        claims.put("firstName", firstName);
+        if (role != null) claims.put("role", role);
         String token = Jwts.builder()
                 .subject(userId)
-                .claims(Map.of("email", email, "firstName", firstName))
+                .claims(claims)
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(exp))
                 .signWith(key)

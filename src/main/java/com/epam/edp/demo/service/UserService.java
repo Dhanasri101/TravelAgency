@@ -98,7 +98,7 @@ public class UserService {
         user.setLockedUntil(null);
         User saved = repository.save(user);
 
-        JwtService.IssuedToken issued = jwtService.issue(saved.getId(), saved.getEmail(), saved.getFirstName());
+        JwtService.IssuedToken issued = jwtService.issue(saved.getId(), saved.getEmail(), saved.getFirstName(), saved.getRole().name());
         String userName = (saved.getFirstName() + " " + saved.getLastName()).trim();
         return new SignInResponseDTO(issued.token(), saved.getRole(), userName, saved.getEmail(), issued.expiresAt());
     }
