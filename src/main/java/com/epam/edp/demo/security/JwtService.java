@@ -42,18 +42,17 @@ public class JwtService {
     }
 
     public static byte[] resolveSecretBytes(String secret) {
+        byte[] rawBytes = secret.getBytes(StandardCharsets.UTF_8);
         try {
             byte[] decoded = Base64.getDecoder().decode(secret);
-            // Only treat as base64 if it was valid canonical base64 (padding present and correct)
-            String reEncoded = Base64.getEncoder().encodeToString(decoded);
-            if (reEncoded.equals(secret)) {
+            if (decoded.length >= MIN_SECRET_BYTES || rawBytes.length < MIN_SECRET_BYTES) {
                 return decoded;
             }
-        } catch (IllegalArgumentException ignored) {
-            // not valid base64
+            log.debug("JWT secret decodes to fewer than {} bytes; treating long raw secret as UTF-8 instead", MIN_SECRET_BYTES);
+        } catch (IllegalArgumentException e) {
+            log.debug("JWT secret is not valid base64, treating as raw UTF-8: {}", e.getMessage());
         }
-        log.debug("JWT secret is not valid canonical base64, treating as raw UTF-8");
-        return secret.getBytes(StandardCharsets.UTF_8);
+        return rawBytes;
     }
 
     public IssuedToken issue(String userId, String email, String firstName, String role) {
