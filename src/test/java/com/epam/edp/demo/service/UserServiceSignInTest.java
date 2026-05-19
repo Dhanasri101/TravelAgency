@@ -183,7 +183,7 @@ class UserServiceSignInTest {
         when(repository.findByEmail("john@example.com")).thenReturn(Optional.of(found));
         when(passwordEncoder.matches("good", found.getPasswordHash())).thenReturn(true);
         when(repository.save(found)).thenReturn(saved);
-        when(jwtService.issue("u-1", "john@example.com", "Johnny", "CUSTOMER"))
+        when(jwtService.issue("u-1", "john@example.com", "Johnny", "ADMIN"))
                 .thenReturn(new JwtService.IssuedToken("jwt", Instant.now().plusSeconds(3600)));
 
         SignInResponseDTO response = userService.signIn(request("john@example.com", "good"));
