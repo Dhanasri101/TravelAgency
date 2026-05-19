@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import './EditBookingModal.css';
-import { buildApiUrl, client } from '../api/client';
+import { buildApiUrl } from '../api/client';
 
 /* ── icon helpers ────────────────────────────────────────────── */
 function StarIcon() {
@@ -74,8 +74,50 @@ function calcTotal(tourDetail, duration, mealPlan, adults) {
   return total;
 }
 
+function buildPendingChanges(booking, payload) {
+  const changes = [];
+  const oldAdults = booking.rawAdults || 0;
+  const oldChildren = booking.rawChildren || 0;
+  const newAdults = payload.guests.adult;
+  const newChildren = payload.guests.children;
+
+  if (oldAdults !== newAdults || oldChildren !== newChildren) {
+    const oldGuests = `${oldAdults} adult${oldAdults !== 1 ? 's' : ''}${oldChildren > 0 ? `, ${oldChildren} child${oldChildren !== 1 ? 'ren' : ''}` : ''}`;
+    const newGuests = `${newAdults} adult${newAdults !== 1 ? 's' : ''}${newChildren > 0 ? `, ${newChildren} child${newChildren !== 1 ? 'ren' : ''}` : ''}`;
+    changes.push(`Number of tourists: ${oldGuests} → ${newGuests}`);
+  }
+
+  if (booking.rawMealPlan !== payload.mealPlan) {
+    changes.push(`Meal plan: ${booking.rawMealPlan} → ${payload.mealPlan}`);
+  }
+
+  if (booking.rawDate !== payload.date) {
+    changes.push('Start date updated');
+  }
+
+  if (booking.rawDuration !== payload.duration) {
+    changes.push(`Duration: ${booking.rawDuration} → ${payload.duration}`);
+  }
+
+  const originalDetails = booking.personalDetails || [];
+  const detailsChanged = payload.personalDetails.length !== originalDetails.length
+    || payload.personalDetails.some((person, idx) => {
+      const original = originalDetails[idx] || {};
+      return person.firstName !== (original.firstName || '')
+        || person.lastName !== (original.lastName || '');
+    });
+
+  if (detailsChanged) {
+    changes.push('Guest details updated');
+  }
+
+  return changes;
+}
+
 /* ══════════════════════════════════════════════════════════════ */
 export default function EditBookingModal({ booking, onClose, onSaved }) {
+  const initialGuestCount = booking.personalDetails?.length || ((booking.rawAdults || 1) + (booking.rawChildren || 0));
+
   /* ── fetch full tour details for dropdowns ──────────────── */
   const [tourDetail, setTourDetail] = useState(null);
   const [fetchLoading, setFetchLoading] = useState(true);
@@ -148,16 +190,17 @@ export default function EditBookingModal({ booking, onClose, onSaved }) {
     }
   }, [tourDetail, mealPlan, booking.rawMealPlan]);
 
-  /* Sync personal details array with adults */
+  /* Sync personal details array with total guests */
   useEffect(() => {
+    const totalGuests = adults + children;
     setPersonalDetails(prev => {
-      if (adults > prev.length) {
-        const extra = Array.from({ length: adults - prev.length }, () => ({ firstName: '', lastName: '' }));
+      if (totalGuests > prev.length) {
+        const extra = Array.from({ length: totalGuests - prev.length }, () => ({ firstName: '', lastName: '' }));
         return [...prev, ...extra];
       }
-      return prev.slice(0, adults);
+      return prev.slice(0, totalGuests);
     });
-  }, [adults]);
+  }, [adults, children]);
 
   /* ── derived ───────────────────────────────────────────── */
   const selected = comboOptions[comboIdx] || {};
@@ -198,10 +241,37 @@ export default function EditBookingModal({ booking, onClose, onSaved }) {
       personalDetails: personalDetails.map(p => ({ firstName: p.firstName.trim(), lastName: p.lastName.trim() })),
     };
 
+    const totalGuests = adults + children;
+    const removedGuestIds = totalGuests < initialGuestCount
+      ? Array.from({ length: initialGuestCount - totalGuests }, (_, idx) => `GUEST_${totalGuests + idx + 1}`)
+      : [];
+
+    const previewBooking = {
+      ...booking,
+      rawDate: payload.date,
+      rawDuration: payload.duration,
+      rawMealPlan: payload.mealPlan,
+      rawAdults: payload.guests.adult,
+      rawChildren: payload.guests.children,
+      personalDetails: payload.personalDetails,
+      tourDetails: {
+        ...booking.tourDetails,
+        totalPrice: total != null ? `$${total.toLocaleString()}` : booking.tourDetails?.totalPrice,
+      },
+    };
+
+    const changes = buildPendingChanges(booking, payload);
+
     try {
       setLoading(true);
-      const res = await client.put(`/bookings/${booking.id}`, payload);
-      onSaved(res.data);
+      onSaved({
+        bookingId: booking.id,
+        payload,
+        changes,
+        removedGuestIds,
+        previewBooking,
+        newTotalPrice: previewBooking.tourDetails?.totalPrice,
+      });
     } catch (err) {
       const msg = err.response?.data?.message || err.response?.data || err.message;
       setError(typeof msg === 'string' ? msg : 'Update failed. Please try again.');
@@ -239,10 +309,16 @@ export default function EditBookingModal({ booking, onClose, onSaved }) {
         ) : (
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
             {/* ── Personal details ────────────────────────── */}
-            {personalDetails.map((person, idx) => (
+            {personalDetails.map((person, idx) => {
+              const isChild = idx >= adults;
+              const guestLabel = isChild
+                ? ` (Child ${idx - adults + 1})`
+                : (adults > 1 ? ` (Adult ${idx + 1})` : '');
+
+              return (
               <div key={idx}>
                 <p className="ebm-section-title">
-                  Personal details{adults > 1 ? ` (Customer ${idx + 1})` : ''}
+                  Personal details{guestLabel}
                 </p>
                 <div className="ebm-personal-row">
                   <div className="ebm-field">
@@ -277,7 +353,7 @@ export default function EditBookingModal({ booking, onClose, onSaved }) {
                   </div>
                 </div>
               </div>
-            ))}
+            )})}
 
             {/* ── Tour details ─────────────────────────────── */}
             <div>

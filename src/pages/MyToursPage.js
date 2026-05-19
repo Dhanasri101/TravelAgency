@@ -5,6 +5,9 @@ import Header from '../components/Header';
 import EditBookingModal from '../components/EditBookingModal';
 import ConfirmChangesModal from '../components/ConfirmChangesModal';
 import CancelBookingModal from '../components/CancelBookingModal';
+import FeedbackModal from '../components/FeedbackModal';
+import { getFeedback, createFeedback, updateFeedback } from '../api/feedback';
+import DocumentUploadModal from '../components/DocumentUploadModal';
 import './MyToursPage.css';
 
 const STATUS_TABS = ['All tours', 'Booked', 'Confirmed', 'Started', 'Finished', 'Cancelled'];
@@ -178,10 +181,20 @@ function ProgressStepper({ state }) {
   );
 }
 
-function BookingCard({ booking, onCancel, onEdit, currentUserId }) {
+function BookingCard({ booking, onCancel, onEdit, onUpload, currentUserId, feedbackData, onFeedback }) {
   const { tourDetails, travelAgent } = booking;
   const canceledByLabel = getCanceledByLabel(booking.canceledBy, currentUserId);
   const cancelReason = booking.cancelReason?.trim() || '-';
+  const hasFeedback = Boolean(feedbackData?.[booking.id]);
+  const isFinished = booking.state === 'FINISHED';
+  const isStarted = booking.state === 'STARTED';
+  const isCancelled = booking.state === 'CANCELLED';
+  const hasDocuments = tourDetails?.documents && tourDetails.documents !== '0 items';
+  // BOOKED / CONFIRMED only get Cancel + Edit + Upload
+  const showDocActions = !isFinished && !isCancelled && !isStarted;
+  const showGiveFeedback = isStarted && !hasFeedback;
+  const showUpdateFeedback = isFinished && hasFeedback;
+  const showActionsRow = showDocActions || showGiveFeedback || showUpdateFeedback;
 
   return (
     <div className={`mt-card ${booking.state === 'CANCELLED' ? 'mt-card-cancelled' : ''}`}>
@@ -237,11 +250,27 @@ function BookingCard({ booking, onCancel, onEdit, currentUserId }) {
       </div>
 
       {/* Actions */}
-      {booking.state !== 'CANCELLED' && booking.state !== 'FINISHED' && (
+      {showActionsRow && (
         <div className="mt-card-actions">
-          <button className="mt-btn-outline" onClick={() => onCancel(booking.id)}>Cancel</button>
-          <button className="mt-btn-outline" onClick={() => onEdit(booking)}>Edit</button>
-          <button className="mt-btn-solid">Upload documents</button>
+          {showDocActions && (
+            <>
+              <button className="mt-btn-outline" onClick={() => onCancel(booking.id)}>Cancel</button>
+              <button className="mt-btn-outline" onClick={() => onEdit(booking)}>Edit</button>
+              <button className="mt-btn-solid" onClick={() => onUpload(booking)}>
+                {hasDocuments ? 'Update documents' : 'Upload documents'}
+              </button>
+            </>
+          )}
+          {showGiveFeedback && (
+            <button className="mt-btn-solid mt-btn-feedback-only" onClick={() => onFeedback(booking)}>
+              Give feedback
+            </button>
+          )}
+          {showUpdateFeedback && (
+            <button className="mt-btn-solid mt-btn-feedback-only" onClick={() => onFeedback(booking)}>
+              Update feedback
+            </button>
+          )}
         </div>
       )}
 
@@ -271,13 +300,38 @@ export default function MyToursPage() {
   const [confirmData, setConfirmData] = useState(null);
   const [lastEditedBooking, setLastEditedBooking] = useState(null);
   const [cancellingBooking, setCancellingBooking] = useState(null);
+  const [uploadingBooking, setUploadingBooking] = useState(null);
+
+  // ── Feedback state ─────────────────────────────────────────────
+  // Map of bookingId → { rating, comment } | null (null = no feedback)
+  const [feedbackData, setFeedbackData] = useState({});
+  const [feedbackModalBooking, setFeedbackModalBooking] = useState(null);
+  const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
+  const [successAlert, setSuccessAlert] = useState(null); // string message
 
   const fetchBookings = useCallback(async () => {
     if (!user?.id) return;
     setLoading(true);
     try {
       const res = await client.get(`/bookings?userId=${user.id}`);
-      setBookings(res.data.bookings || []);
+      const loaded = res.data.bookings || [];
+      setBookings(loaded);
+      // Pre-load feedback for Started and Finished bookings
+      const relevant = loaded.filter(
+        (b) => b.state === 'STARTED' || b.state === 'FINISHED'
+      );
+      if (relevant.length > 0) {
+        const results = await Promise.allSettled(
+          relevant.map((b) => getFeedback(b.id).then((fb) => ({ id: b.id, fb })))
+        );
+        const map = {};
+        results.forEach((r) => {
+          if (r.status === 'fulfilled') {
+            map[r.value.id] = r.value.fb; // null if no feedback
+          }
+        });
+        setFeedbackData((prev) => ({ ...prev, ...map }));
+      }
     } catch (err) {
       console.error('Failed to fetch bookings:', err);
       setBookings([]);
@@ -317,24 +371,99 @@ export default function MyToursPage() {
     setEditingBooking(booking);
   };
 
+  const handleUploadDocuments = (booking) => {
+    setUploadingBooking(booking);
+  };
+
+  const handleUploadSuccess = ({ bookingId, documentCount } = {}) => {
+    if (!bookingId) {
+      return;
+    }
+
+    setBookings(prevBookings => prevBookings.map(booking => (
+      booking.id === bookingId
+        ? { ...booking, documentCount }
+        : booking
+    )));
+
+    setUploadingBooking(prevBooking => (
+      prevBooking && prevBooking.id === bookingId
+        ? { ...prevBooking, documentCount }
+        : prevBooking
+    ));
+  };
+
   const handleEditSaved = (response) => {
-    setLastEditedBooking(editingBooking);
+    setLastEditedBooking(response.previewBooking || editingBooking);
     setEditingBooking(null);
     // Show confirmation modal with changes
     setConfirmData(response);
   };
 
-  const handleConfirmChanges = () => {
-    setConfirmData(null);
-    fetchBookings(); // Refresh the list
+  const handleConfirmChanges = async () => {
+    try {
+      if (confirmData?.bookingId && confirmData?.payload) {
+        await client.put(`/bookings/${confirmData.bookingId}`, confirmData.payload);
+      }
+
+      if (confirmData?.bookingId && confirmData?.removedGuestIds?.length) {
+        await client.post(`/bookings/${confirmData.bookingId}/confirm-changes`, {
+          removedGuestIds: confirmData.removedGuestIds,
+        });
+      }
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to finalize booking changes');
+    } finally {
+      setConfirmData(null);
+      fetchBookings();
+    }
   };
 
   const handleDeclineChanges = () => {
     setConfirmData(null);
-    // Just close — the changes are already saved on backend
-    // In a real app you might revert here
-    fetchBookings();
   };
+
+  // ── Feedback handlers ──────────────────────────────────────────
+  const handleFeedbackClick = (booking) => {
+    setFeedbackModalBooking(booking);
+  };
+
+  const handleFeedbackClose = () => {
+    setFeedbackModalBooking(null);
+  };
+
+  const handleFeedbackSubmit = async ({ rating, comment }) => {
+    if (!feedbackModalBooking) return;
+    const bookingId = feedbackModalBooking.id;
+    const existing = feedbackData[bookingId];
+    setFeedbackSubmitting(true);
+    try {
+      let saved;
+      if (existing) {
+        saved = await updateFeedback(bookingId, { rating, comment });
+      } else {
+        saved = await createFeedback(bookingId, { rating, comment });
+      }
+      // Store returned feedback (fall back to submitted values if API returns nothing)
+      const stored = saved || { rating, comment };
+      setFeedbackData((prev) => ({ ...prev, [bookingId]: stored }));
+      setFeedbackModalBooking(null);
+      setSuccessAlert('Your feedback has been submitted successfully.');
+    } catch (err) {
+      console.error('Failed to submit feedback:', err);
+      // Surface error to user without crashing
+      alert(err?.response?.data?.message || 'Failed to submit feedback. Please try again.');
+    } finally {
+      setFeedbackSubmitting(false);
+    }
+  };
+
+  // Auto-dismiss success alert after 5 s
+  useEffect(() => {
+    if (!successAlert) return;
+    const t = setTimeout(() => setSuccessAlert(null), 5000);
+    return () => clearTimeout(t);
+  }, [successAlert]);
 
   const filtered = statusFilter === 'All tours'
     ? bookings
@@ -368,7 +497,16 @@ export default function MyToursPage() {
         ) : (
           <div className="mt-bookings-grid">
             {filtered.map(booking => (
-              <BookingCard key={booking.id} booking={booking} onCancel={handleCancel} onEdit={handleEdit} currentUserId={user?.id} />
+              <BookingCard
+                key={booking.id}
+                booking={booking}
+                onCancel={handleCancel}
+                onEdit={handleEdit}
+                onUpload={handleUploadDocuments}
+                currentUserId={user?.id}
+                feedbackData={feedbackData}
+                onFeedback={handleFeedbackClick}
+              />
             ))}
           </div>
         )}
@@ -395,12 +533,86 @@ export default function MyToursPage() {
       {/* Confirm Changes Modal */}
       {confirmData && (
         <ConfirmChangesModal
-          booking={lastEditedBooking || confirmData}
+          booking={confirmData.previewBooking || lastEditedBooking || confirmData}
           changes={confirmData.changes || []}
           onConfirm={handleConfirmChanges}
           onDecline={handleDeclineChanges}
         />
       )}
+
+      {/* Feedback Modal */}
+      {feedbackModalBooking && (
+        <FeedbackModal
+          booking={feedbackModalBooking}
+          existingFeedback={feedbackData[feedbackModalBooking.id] || null}
+          onClose={handleFeedbackClose}
+          onSubmit={handleFeedbackSubmit}
+          submitting={feedbackSubmitting}
+        />
+      )}
+
+      {/* Success Alert */}
+      {successAlert && (
+        <div className="mt-success-alert" role="status" aria-live="polite">
+          <div className="mt-success-alert__icon">
+            <SuccessCheckIcon />
+          </div>
+          <div className="mt-success-alert__text">
+            <div className="mt-success-alert__title">Success</div>
+            <div className="mt-success-alert__msg">{successAlert}</div>
+          </div>
+          <button
+            className="mt-success-alert__close"
+            onClick={() => setSuccessAlert(null)}
+            aria-label="Dismiss"
+          >
+            <AlertCloseIcon />
+          </button>
+        </div>
+      )}
+
+      {/* Document Upload Modal */}
+      {uploadingBooking && (
+        <DocumentUploadModal
+          booking={uploadingBooking}
+          onClose={() => setUploadingBooking(null)}
+          onSuccess={handleUploadSuccess}
+        />
+      )}
     </div>
+  );
+}
+
+function SuccessCheckIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="12" cy="12" r="10" fill="#118819" />
+      <polyline
+        points="8 12 11 15 16 9"
+        stroke="#ffffff"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function AlertCloseIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
   );
 }
