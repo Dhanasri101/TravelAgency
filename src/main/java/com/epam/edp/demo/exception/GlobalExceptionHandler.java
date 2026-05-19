@@ -79,6 +79,18 @@ public class GlobalExceptionHandler {
                 .body(simpleBody(HttpStatus.BAD_REQUEST, "Bad Request", ex.getMessage()));
     }
 
+    @ExceptionHandler(FeedbackNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleFeedbackNotFound(FeedbackNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(simpleBody(HttpStatus.NOT_FOUND, "Feedback not found", ex.getMessage()));
+    }
+
+    @ExceptionHandler(FeedbackNotAllowedException.class)
+    public ResponseEntity<Map<String, Object>> handleFeedbackNotAllowed(FeedbackNotAllowedException ex) {
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+                .body(simpleBody(HttpStatus.UNPROCESSABLE_ENTITY, "Feedback not allowed", ex.getMessage()));
+    }
+
     private static Map<String, Object> simpleBody(HttpStatus status, String error, String message) {
         Map<String, Object> b = new LinkedHashMap<>();
         b.put(KEY_TIMESTAMP, Instant.now());
