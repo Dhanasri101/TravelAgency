@@ -2,6 +2,9 @@ import React from 'react';
 import { Route, Routes } from 'react-router-dom';
 import RegisterPage from './pages/RegisterPage';
 import SignInPage from './pages/SignInPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import VerifyCodePage from './pages/VerifyCodePage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import HomePage from './pages/HomePage';
 import TourDetailPage from './pages/TourDetailPage';
 import MyToursPage from './pages/MyToursPage';
@@ -27,6 +30,30 @@ export default function App() {
         element={
           <PublicOnlyRoute>
             <SignInPage />
+          </PublicOnlyRoute>
+        }
+      />
+      <Route
+        path="/forgot-password"
+        element={
+          <PublicOnlyRoute>
+            <ForgotPasswordPage />
+          </PublicOnlyRoute>
+        }
+      />
+      <Route
+        path="/verify-code"
+        element={
+          <PublicOnlyRoute>
+            <VerifyCodePage />
+          </PublicOnlyRoute>
+        }
+      />
+      <Route
+        path="/reset-password"
+        element={
+          <PublicOnlyRoute>
+            <ResetPasswordPage />
           </PublicOnlyRoute>
         }
       />
