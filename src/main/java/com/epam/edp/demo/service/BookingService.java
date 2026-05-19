@@ -2,6 +2,7 @@ package com.epam.edp.demo.service;
 
 import com.epam.edp.demo.dto.BookedTourListResponseDTO;
 import com.epam.edp.demo.dto.BookingEvent;
+import com.epam.edp.demo.dto.ConfirmBookingChangesRequestDTO;
 import com.epam.edp.demo.dto.CreateBookingRequestDTO;
 import com.epam.edp.demo.dto.CreateBookingResponseDTO;
 import com.epam.edp.demo.dto.PersonalDetailDTO;
@@ -40,6 +41,7 @@ public class BookingService {
     private final BookingRepository bookingRepository;
     private final TourRepository tourRepository;
     private final UserRepository userRepository;
+    private final DocumentRetentionCleanupService documentRetentionCleanupService;
     private final ConcurrentMap<String, ReentrantLock> tourBookingLocks = new ConcurrentHashMap<>();
 
     /** Optional — only wired when RabbitMQ is enabled (app.rabbitmq.enabled=true). */
@@ -47,10 +49,12 @@ public class BookingService {
 
     public BookingService(BookingRepository bookingRepository,
                           TourRepository tourRepository,
-                          UserRepository userRepository) {
+                          UserRepository userRepository,
+                          DocumentRetentionCleanupService documentRetentionCleanupService) {
         this.bookingRepository = bookingRepository;
         this.tourRepository = tourRepository;
         this.userRepository = userRepository;
+        this.documentRetentionCleanupService = documentRetentionCleanupService;
     }
 
     @org.springframework.beans.factory.annotation.Autowired(required = false)
@@ -248,6 +252,11 @@ public class BookingService {
         booking.setCancelReason(cancelReason);
         bookingRepository.save(booking);
 
+        // Cleanup only passport documents. Payment documents remain for audit/refund compliance.
+        documentRetentionCleanupService.cleanupPassportDocumentsForCancelledBooking(
+            bookingId,
+            "BOOKING_CANCEL_API");
+
         // Decrement tour's bookedCount
         if (tour != null) {
             tourRepository.decrementBookedCountIfPositive(tour.getId());
@@ -293,6 +302,30 @@ public class BookingService {
         response.put("changes", changes);
         response.put("bookingId", bookingId);
         response.put("newTotalPrice", booking.getTotalPrice());
+        return response;
+    }
+
+    public Map<String, Object> confirmBookingChanges(String bookingId,
+                                                     String authenticatedUserId,
+                                                     ConfirmBookingChangesRequestDTO req) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        BOOKING_NOT_FOUND + bookingId));
+
+        if (!booking.getUserId().equals(authenticatedUserId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "You can only confirm changes for your own bookings");
+        }
+
+        int deletedDocuments = documentRetentionCleanupService.cleanupDocumentsForRemovedGuests(
+                bookingId,
+                req != null ? req.getRemovedGuestIds() : null,
+                "BOOKING_EDIT_CONFIRM");
+
+        Map<String, Object> response = new java.util.LinkedHashMap<>();
+        response.put("message", "Booking changes confirmed successfully");
+        response.put("bookingId", bookingId);
+        response.put("deletedDocumentCount", deletedDocuments);
         return response;
     }
 

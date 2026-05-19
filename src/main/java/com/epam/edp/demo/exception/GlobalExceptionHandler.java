@@ -7,6 +7,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.util.HashMap;
@@ -77,6 +78,38 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleIllegalArgument(IllegalArgumentException ex) {
         return ResponseEntity.badRequest()
                 .body(simpleBody(HttpStatus.BAD_REQUEST, "Bad Request", ex.getMessage()));
+    }
+
+    @ExceptionHandler(FeedbackNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleFeedbackNotFound(FeedbackNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(simpleBody(HttpStatus.NOT_FOUND, "Feedback not found", ex.getMessage()));
+    }
+
+    @ExceptionHandler(FeedbackNotAllowedException.class)
+    public ResponseEntity<Map<String, Object>> handleFeedbackNotAllowed(FeedbackNotAllowedException ex) {
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+                .body(simpleBody(HttpStatus.UNPROCESSABLE_ENTITY, "Feedback not allowed", ex.getMessage()));
+    }
+
+    @ExceptionHandler(DocumentValidationException.class)
+    public ResponseEntity<Map<String, Object>> handleDocumentValidation(DocumentValidationException ex) {
+        return ResponseEntity.badRequest()
+                .body(simpleBody(HttpStatus.BAD_REQUEST, "Invalid document", ex.getMessage()));
+    }
+
+    @ExceptionHandler(MalwareDetectedException.class)
+    public ResponseEntity<Map<String, Object>> handleMalwareDetected(MalwareDetectedException ex) {
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+                .body(simpleBody(HttpStatus.UNPROCESSABLE_ENTITY, "Malware detected", ex.getMessage()));
+    }
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<Map<String, Object>> handleResponseStatus(ResponseStatusException ex) {
+        HttpStatus status = HttpStatus.valueOf(ex.getStatusCode().value());
+        String message = ex.getReason() == null ? status.getReasonPhrase() : ex.getReason();
+        return ResponseEntity.status(status)
+                .body(simpleBody(status, status.getReasonPhrase(), message));
     }
 
     private static Map<String, Object> simpleBody(HttpStatus status, String error, String message) {

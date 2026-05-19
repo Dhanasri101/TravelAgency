@@ -3,6 +3,7 @@ package com.epam.edp.demo.config;
 import com.epam.edp.demo.controller.AuthController;
 import com.epam.edp.demo.security.JwtAuthenticationFilter;
 import com.epam.edp.demo.security.JwtService;
+import com.epam.edp.demo.service.PasswordResetService;
 import com.epam.edp.demo.service.UserService;
 import org.mockito.Mockito;
 import org.junit.jupiter.api.Test;
@@ -42,6 +43,11 @@ class SecurityConfigTest {
         @Bean
         JwtService jwtService() {
             return Mockito.mock(JwtService.class);
+        }
+
+        @Bean
+        PasswordResetService passwordResetService() {
+            return Mockito.mock(PasswordResetService.class);
         }
 
         @Bean(name = "mongoMappingContext")

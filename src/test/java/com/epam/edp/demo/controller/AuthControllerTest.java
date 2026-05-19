@@ -9,6 +9,7 @@ import com.epam.edp.demo.enums.Role;
 import com.epam.edp.demo.exception.UnauthenticatedException;
 import com.epam.edp.demo.model.User;
 import com.epam.edp.demo.service.UserService;
+import com.epam.edp.demo.service.PasswordResetService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,11 +36,14 @@ class AuthControllerTest {
     @Mock
     private UserService userService;
 
+    @Mock
+    private PasswordResetService passwordResetService;
+
     private AuthController authController;
 
     @BeforeEach
     void setUp() {
-        authController = new AuthController(userService);
+        authController = new AuthController(userService, passwordResetService);
         SecurityContextHolder.clearContext();
     }
 

@@ -1,10 +1,14 @@
 package com.epam.edp.demo.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 import java.util.ArrayList;
 import java.util.List;
 
+@Schema(name = "DestinationListResponse", description = "Destination suggestions matching the search query")
 public class DestinationListResponseDTO {
 
+    @Schema(description = "Matching destination names", example = "[\"Bali\", \"Bangkok\", \"Barcelona\"]")
     private List<String> destinations;
 
     public DestinationListResponseDTO() {}

@@ -2,6 +2,7 @@ package com.epam.edp.demo.service;
 
 import com.epam.edp.demo.dto.BookedTourListResponseDTO;
 import com.epam.edp.demo.dto.BookingGuestsDTO;
+import com.epam.edp.demo.dto.ConfirmBookingChangesRequestDTO;
 import com.epam.edp.demo.dto.CreateBookingRequestDTO;
 import com.epam.edp.demo.dto.CreateBookingResponseDTO;
 import com.epam.edp.demo.dto.PersonalDetailDTO;
@@ -49,11 +50,15 @@ class BookingServiceTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private DocumentRetentionCleanupService documentRetentionCleanupService;
+
     private BookingService bookingService;
 
     @BeforeEach
     void setUp() {
-        bookingService = new BookingService(bookingRepository, tourRepository, userRepository);
+        bookingService = new BookingService(bookingRepository, tourRepository, userRepository,
+                documentRetentionCleanupService);
     }
 
     @Test
@@ -338,6 +343,8 @@ class BookingServiceTest {
         assertEquals("user-1", booking.getCanceledBy());
         assertEquals("changed plans", booking.getCancelReason());
         verify(bookingRepository).save(booking);
+        verify(documentRetentionCleanupService)
+            .cleanupPassportDocumentsForCancelledBooking("b-1", "BOOKING_CANCEL_API");
         verify(tourRepository).decrementBookedCountIfPositive("tour-1");
     }
 
@@ -350,6 +357,8 @@ class BookingServiceTest {
         LocalDate deadline = bookingService.cancelBooking("b-1", "user-1", "reason");
 
         assertNull(deadline);
+        verify(documentRetentionCleanupService)
+            .cleanupPassportDocumentsForCancelledBooking("b-1", "BOOKING_CANCEL_API");
         verify(tourRepository, never()).decrementBookedCountIfPositive(any());
     }
 
@@ -416,6 +425,8 @@ class BookingServiceTest {
         LocalDate deadline = bookingService.cancelBooking("b-1", "user-1", null);
 
         assertNull(deadline);
+        verify(documentRetentionCleanupService)
+            .cleanupPassportDocumentsForCancelledBooking("b-1", "BOOKING_CANCEL_API");
         verify(tourRepository).decrementBookedCountIfPositive("tour-1");
     }
 
@@ -431,6 +442,28 @@ class BookingServiceTest {
         BookedTourListResponseDTO response = bookingService.getBookingsForUser("user-1", "user-1");
 
         assertTrue(response.getBookings().get(0).getTourDetails().getGuests().contains("1 child"));
+    }
+
+    @Test
+    void confirmBookingChanges_deletesRemovedGuestDocumentsOnlyOnConfirm() {
+        Booking booking = booked("b-1", "user-1", "tour-1", "7 days", "BB", 2, 1);
+        when(bookingRepository.findById("b-1")).thenReturn(Optional.of(booking));
+
+        ConfirmBookingChangesRequestDTO request = new ConfirmBookingChangesRequestDTO();
+        request.setRemovedGuestIds(List.of("GUEST_3"));
+        when(documentRetentionCleanupService.cleanupDocumentsForRemovedGuests(
+                "b-1",
+                List.of("GUEST_3"),
+                "BOOKING_EDIT_CONFIRM")).thenReturn(1);
+
+        Map<String, Object> response = bookingService.confirmBookingChanges("b-1", "user-1", request);
+
+        assertEquals("b-1", response.get("bookingId"));
+        assertEquals(1, response.get("deletedDocumentCount"));
+        verify(documentRetentionCleanupService).cleanupDocumentsForRemovedGuests(
+                "b-1",
+                List.of("GUEST_3"),
+                "BOOKING_EDIT_CONFIRM");
     }
 
     private static Tour baseTour(String id) {
