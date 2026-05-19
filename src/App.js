@@ -5,8 +5,11 @@ import SignInPage from './pages/SignInPage';
 import HomePage from './pages/HomePage';
 import TourDetailPage from './pages/TourDetailPage';
 import MyToursPage from './pages/MyToursPage';
+import ReportsPage from './pages/ReportsPage';
+import FeedbackModerationPage from './pages/FeedbackModerationPage';
 import ProtectedRoute from './auth/ProtectedRoute';
 import PublicOnlyRoute from './auth/PublicOnlyRoute';
+import AdminRoute from './auth/AdminRoute';
 
 export default function App() {
   return (
@@ -41,6 +44,22 @@ export default function App() {
           <ProtectedRoute>
             <MyToursPage />
           </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/reports"
+        element={
+          <AdminRoute>
+            <ReportsPage />
+          </AdminRoute>
+        }
+      />
+      <Route
+        path="/admin/feedback"
+        element={
+          <AdminRoute>
+            <FeedbackModerationPage />
+          </AdminRoute>
         }
       />
       <Route

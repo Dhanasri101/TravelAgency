@@ -115,6 +115,22 @@ export default function Header({ activeTab, onTabChange }) {
           >
             My tours
           </button>
+          {user && user.role === 'ADMIN' && (
+            <button
+              className={`nav-tab ${location.pathname === '/reports' ? 'active' : ''}`}
+              onClick={() => navigate('/reports')}
+            >
+              Reports
+            </button>
+          )}
+          {user && user.role === 'ADMIN' && (
+            <button
+              className={`nav-tab ${location.pathname === '/admin/feedback' ? 'active' : ''}`}
+              onClick={() => navigate('/admin/feedback')}
+            >
+              Feedback
+            </button>
+          )}
         </nav>
 
         <div className="header-right">
