@@ -27,9 +27,13 @@ public class PasswordResetService {
 
     @Transactional
     public void requestPasswordReset(String email) {
-        // Check if user exists
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        // Check if user exists - silently return if not found (security: don't reveal if email exists)
+        var userOpt = userRepository.findByEmail(email);
+        if (userOpt.isEmpty()) {
+            log.info("Password reset requested for non-existent email: {}", email);
+            return; // Don't reveal that user doesn't exist
+        }
+        User user = userOpt.get();
 
         // Delete any existing reset tokens for this email
         resetTokenRepository.deleteByEmail(email);

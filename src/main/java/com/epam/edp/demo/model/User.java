@@ -33,9 +33,17 @@ public class User {
 
     private Role role;
 
+    // Profile image URL (Base64 or external URL)
+    private String imageUrl;
+
     // Travel Agent contact info (null for CUSTOMER role)
     private String phone;
     private String messengerLink;
+
+    // Email change verification fields
+    private String pendingEmail;
+    private String emailConfirmationToken;
+    private Instant emailConfirmationExpiry;
 
     private int failedLoginAttempts;
     private Instant lockedUntil;
@@ -62,4 +70,3 @@ public class User {
         return role == null ? Role.CUSTOMER : role;
     }
 }
-
