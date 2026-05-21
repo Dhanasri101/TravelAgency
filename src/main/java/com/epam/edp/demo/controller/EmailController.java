@@ -5,7 +5,10 @@ import com.epam.edp.demo.service.EmailService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import software.amazon.awssdk.services.sesv2.model.SesV2Exception;
 
 import java.util.Map;
@@ -78,11 +81,12 @@ public class EmailController {
         } catch (SesV2Exception ex) {
             log.error("AWS SES rejected email to '{}': {} (requestId={})",
                     request.getTo(), ex.getMessage(), ex.requestId(), ex);
+            String reqId = ex.requestId() != null ? ex.requestId() : "n/a";
             return ResponseEntity.status(502)
                     .body(Map.of(
                             "error",     "AWS SES rejected the request",
-                            "detail",    ex.getMessage(),
-                            "requestId", ex.requestId()
+                            "detail",    ex.getMessage() != null ? ex.getMessage() : "unknown",
+                            "requestId", reqId
                     ));
         }
     }

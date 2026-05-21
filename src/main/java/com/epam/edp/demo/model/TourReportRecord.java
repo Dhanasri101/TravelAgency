@@ -5,7 +5,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.CompoundIndex;
-import org.springframework.data.mongodb.core.index.CompoundIndexes;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.Instant;
@@ -16,9 +15,7 @@ import java.time.LocalDate;
  * Stored in the {@code tour_report_records} MongoDB collection.
  */
 @Document(collection = "tour_report_records")
-@CompoundIndexes({
-    @CompoundIndex(name = "tour_period_idx", def = "{'tourId': 1, 'periodStart': 1, 'periodEnd': 1}", unique = true)
-})
+@CompoundIndex(name = "tour_period_idx", def = "{'tourId': 1, 'periodStart': 1, 'periodEnd': 1}", unique = true)
 @Getter
 @Setter
 @NoArgsConstructor
