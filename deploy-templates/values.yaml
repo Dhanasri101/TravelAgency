@@ -135,7 +135,7 @@ affinity: {}
 #
 appSecrets:
   # Name of the K8s Secret (same secret used by sprint1)
-  secretName: "run23team3-secret"
+  secretName: "run23team3-report-secret"
 
 # ── Non-sensitive app configuration ──────────────────────────────────────────
 appConfig:
