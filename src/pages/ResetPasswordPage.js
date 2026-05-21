@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import SplitLayout from '../components/SplitLayout';
 import TextField from '../components/TextField';
 import Toast from '../components/Toast';
+import PasswordRuleList from '../components/PasswordRuleList';
 import { resetPassword } from '../api/passwordReset';
-import { evaluatePasswordRules } from '../hooks/usePasswordRules';
+import { evaluatePasswordRules, allRulesPass } from '../hooks/usePasswordRules';
 import '../styles/components.css';
 import './ResetPasswordPage.css';
 
@@ -21,7 +22,11 @@ export default function ResetPasswordPage() {
   const [fieldErrors, setFieldErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
-  const [passwordRules, setPasswordRules] = useState([]);
+
+  const passwordRules = useMemo(
+    () => evaluatePasswordRules(newPassword, '', email),
+    [newPassword, email]
+  );
 
   useEffect(() => {
     if (!email || !code) {
@@ -30,10 +35,6 @@ export default function ResetPasswordPage() {
     }
   }, [email, code, navigate]);
 
-  useEffect(() => {
-    const rules = evaluatePasswordRules(newPassword, '', email);
-    setPasswordRules(rules);
-  }, [newPassword, email]);
 
   function clearFieldError(field) {
     if (fieldErrors[field]) {
@@ -52,11 +53,8 @@ export default function ResetPasswordPage() {
       errs.newPassword = 'New password is required';
     } else if (newPassword.length < 8) {
       errs.newPassword = 'Password must be at least 8 characters long';
-    } else {
-      const failedRules = passwordRules.filter(r => !r.valid);
-      if (failedRules.length > 0) {
-        errs.newPassword = 'Password does not meet all requirements';
-      }
+    } else if (!allRulesPass(passwordRules)) {
+      errs.newPassword = 'Password does not meet all requirements';
     }
     
     if (!confirmPassword) {
@@ -104,7 +102,7 @@ export default function ResetPasswordPage() {
     }
   }
 
-  const allRulesValid = passwordRules.length > 0 && passwordRules.every(r => r.valid);
+  const allRulesValid = allRulesPass(passwordRules);
 
   return (
     <SplitLayout>
@@ -147,16 +145,7 @@ export default function ResetPasswordPage() {
             </button>
           </div>
 
-          {newPassword && (
-            <div className="password-rules">
-              {passwordRules.map((rule) => (
-                <div key={rule.label} className={`rule ${rule.valid ? 'valid' : 'invalid'}`}>
-                  <span className="rule-icon">{rule.valid ? '✓' : '○'}</span>
-                  <span className="rule-label">{rule.label}</span>
-                </div>
-              ))}
-            </div>
-          )}
+          <PasswordRuleList rules={passwordRules} active={newPassword.length > 0} />
 
           <div className="password-wrap">
             <TextField

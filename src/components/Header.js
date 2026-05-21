@@ -142,7 +142,11 @@ export default function Header({ activeTab, onTabChange }) {
                 aria-label="User profile"
               >
                 <div className="profile-avatar" aria-hidden="true">
-                  <span className="profile-avatar-initials">{getInitials(userName)}</span>
+                  {user.imageUrl ? (
+                    <img src={user.imageUrl} alt="" className="profile-avatar-image" />
+                  ) : (
+                    <span className="profile-avatar-initials">{getInitials(userName)}</span>
+                  )}
                 </div>
                 {getRoleLabel(user.role) && (
                   <div className="profile-info">
@@ -161,7 +165,7 @@ export default function Header({ activeTab, onTabChange }) {
                       </div>
                     </div>
                     <div className="dropdown-divider"></div>
-                    <button className="dropdown-item">
+                    <button className="dropdown-item" onClick={() => { setProfileDropdownOpen(false); navigate('/profile'); }}>
                       <ProfileIcon />
                       <span>My Profile</span>
                     </button>
