@@ -2,6 +2,8 @@ package com.epam.edp.demo.controller;
 
 import com.epam.edp.demo.dto.ManualEmailRequest;
 import com.epam.edp.demo.service.EmailService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import software.amazon.awssdk.services.sesv2.model.SesV2Exception;
@@ -34,6 +36,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/emails")
 public class EmailController {
+
+    private static final Logger log = LoggerFactory.getLogger(EmailController.class);
 
     private final EmailService emailService;
 
@@ -72,6 +76,8 @@ public class EmailController {
                     "subject", request.getSubject()
             ));
         } catch (SesV2Exception ex) {
+            log.error("AWS SES rejected email to '{}': {} (requestId={})",
+                    request.getTo(), ex.getMessage(), ex.requestId(), ex);
             return ResponseEntity.status(502)
                     .body(Map.of(
                             "error",     "AWS SES rejected the request",
