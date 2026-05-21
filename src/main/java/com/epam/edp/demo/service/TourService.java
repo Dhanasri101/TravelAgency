@@ -24,6 +24,7 @@ import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.regex.Pattern;
 import java.util.OptionalDouble;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -73,7 +74,7 @@ public class TourService {
 
         List<String> destinations = mongoTemplate.findDistinct(
                 new Query(Criteria.where(FIELD_DESTINATION)
-                        .regex(query, "i")),
+                        .regex(Pattern.quote(query), "i")),
                 FIELD_DESTINATION,
                 Tour.class,
                 String.class
@@ -218,7 +219,7 @@ public class TourService {
                 && !destination.isBlank()
                 && !ANY_DESTINATION.equalsIgnoreCase(destination)) {
             query.addCriteria(
-                    Criteria.where(FIELD_DESTINATION).regex(destination, "i")
+                    Criteria.where(FIELD_DESTINATION).regex(Pattern.quote(destination), "i")
             );
         }
 
