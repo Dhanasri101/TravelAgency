@@ -42,7 +42,7 @@ securityContext: {}
 
 service:
   type: ClusterIP
-  port: 8080
+  port: 8081
 
 ingress:
   enabled: true
@@ -74,13 +74,26 @@ resources: {}
   #   cpu: 100m
   #   memory: 128Mi
 
-livenessProbe:
-  tcpSocket:
-    port: http
-readinessProbe:
+startupProbe:
   tcpSocket:
     port: http
   initialDelaySeconds: 20
+  periodSeconds: 5
+  failureThreshold: 20   # allow up to 20*5=100s for first start
+
+livenessProbe:
+  tcpSocket:
+    port: http
+  initialDelaySeconds: 0
+  periodSeconds: 10
+  failureThreshold: 3
+
+readinessProbe:
+  tcpSocket:
+    port: http
+  initialDelaySeconds: 0
+  periodSeconds: 5
+  failureThreshold: 3
 
 autoscaling:
   enabled: false
@@ -110,3 +123,25 @@ tolerations: []
 
 # -- https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#affinity-and-anti-affinity
 affinity: {}
+
+# ── Secrets ──────────────────────────────────────────────────────────────────
+# All sensitive values come from a single Kubernetes Secret.
+# The secret must exist in the same namespace before deploying.
+#
+# Required secret keys (all kebab-case, matching run23team3-secret):
+#   mongo-uri, rabbitmq-host, rabbitmq-port, rabbitmq-username,
+#   rabbitmq-password, aws-access-key, aws-secret-key, aws-session-token,
+#   ses-access-key, ses-secret-key, ses-session-token
+#
+appSecrets:
+  # Name of the K8s Secret (same secret used by sprint1)
+  secretName: "run23team3-secret"
+
+# ── Non-sensitive app configuration ──────────────────────────────────────────
+appConfig:
+  # AWS region where SES identity is verified
+  awsSesRegion: "us-east-1"
+  # Verified sender address in AWS SES
+  sesSenderEmail: "aayush1234sh@gmail.com"
+  # Agency-head address that receives the weekly Excel report
+  reportRecipientEmail: "aayush8910sh@gmail.com"
