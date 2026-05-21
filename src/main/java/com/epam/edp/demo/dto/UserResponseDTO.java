@@ -17,7 +17,9 @@ public record UserResponseDTO(
         String lastName,
     @Schema(description = "Email address", example = "alex.johnson@example.com")
         String email,
-    @Schema(description = "User role", example = "USER")
+    @Schema(description = "Profile image URL")
+        String imageUrl,
+    @Schema(description = "User role", example = "CUSTOMER")
         Role role,
     @Schema(description = "Account creation timestamp", example = "2026-05-01T09:30:00Z")
         Instant createdAt
@@ -25,6 +27,7 @@ public record UserResponseDTO(
     public static UserResponseDTO from(User user) {
         return new UserResponseDTO(
                 user.getId(), user.getFirstName(), user.getLastName(),
-                user.getEmail(), user.getRole(), user.getCreatedAt());
+                user.getEmail(), user.getImageUrl(), user.getRole(), user.getCreatedAt());
+
     }
 }
