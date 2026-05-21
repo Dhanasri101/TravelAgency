@@ -106,15 +106,24 @@ export default function Header({ activeTab, onTabChange }) {
           >
             All tours
           </button>
-          <button
-            className={`nav-tab ${location.pathname === '/my-tours' ? 'active' : ''}`}
-            onClick={() => {
-              onTabChange && onTabChange('my');
-              navigate(user ? '/my-tours' : '/sign-in', user ? undefined : { state: { from: '/my-tours' } });
-            }}
-          >
-            My tours
-          </button>
+          {user?.role === 'TRAVEL_AGENT' ? (
+            <button
+              className={`nav-tab ${location.pathname === '/bookings' ? 'active' : ''}`}
+              onClick={() => { onTabChange && onTabChange('bookings'); navigate('/bookings'); }}
+            >
+              Bookings
+            </button>
+          ) : (
+            <button
+              className={`nav-tab ${location.pathname === '/my-tours' ? 'active' : ''}`}
+              onClick={() => {
+                onTabChange && onTabChange('my');
+                navigate(user ? '/my-tours' : '/sign-in', user ? undefined : { state: { from: '/my-tours' } });
+              }}
+            >
+              My tours
+            </button>
+          )}
           {user && user.role === 'ADMIN' && (
             <button
               className={`nav-tab ${location.pathname === '/reports' ? 'active' : ''}`}
