@@ -162,3 +162,22 @@ env:
         secretKeyRef:
           name: run23team3-secret
           key: aws-session-token
+    # ── Mail (password-reset) ─────────────────────────────────────────
+    - name: MAIL_USERNAME
+      valueFrom:
+        secretKeyRef:
+          name: run23team3-secret
+          key: mail-username
+    - name: MAIL_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: run23team3-secret
+          key: mail-password
+    # ── RabbitMQ feature flag ─────────────────────────────────────────
+    - name: APP_RABBITMQ_ENABLED
+      value: "true"
+    # ── AWS plain config ──────────────────────────────────────────────
+    - name: AWS_REGION
+      value: "eu-west-3"
+    - name: AWS_S3_BUCKET
+      value: "team3-files-bucket"
