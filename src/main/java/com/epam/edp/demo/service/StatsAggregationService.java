@@ -115,6 +115,23 @@ public class StatsAggregationService {
     // Builders
     // ─────────────────────────────────────────────────────────────────────────
 
+    /** Shared computed stats for a period — eliminates duplication between agent and tour builders. */
+    record PeriodStats(long toursSold, String deltaToursSold,
+                       double avgFeedback, double minFeedback, String deltaAvgFeedback,
+                       long revenue, String deltaRevenue) {}
+
+    PeriodStats computeStats(List<BookingRecord> cur, List<BookingRecord> prev) {
+        return new PeriodStats(
+                cur.size(),
+                changePct(cur.size(), prev.size()),
+                avgRating(cur),
+                minRating(cur),
+                changePct(avgRating(cur), avgRating(prev)),
+                totalRevenue(cur),
+                changePct(totalRevenue(cur), totalRevenue(prev))
+        );
+    }
+
     private AgentReportRecord buildAgentRecord(String agentId,
                                                List<BookingRecord> cur,
                                                List<BookingRecord> prev,
@@ -123,18 +140,19 @@ public class StatsAggregationService {
                 .findByAgentIdAndPeriodStartAndPeriodEnd(agentId, start, end)
                 .orElse(new AgentReportRecord());
 
+        PeriodStats s = computeStats(cur, prev);
         r.setAgentId(agentId);
-        r.setAgentName(firstNonBlank(cur, BookingRecord::getAgentName,  "Unknown"));
+        r.setAgentName(firstNonBlank(cur,  BookingRecord::getAgentName,  "Unknown"));
         r.setAgentEmail(firstNonBlank(cur, BookingRecord::getAgentEmail, "Unknown"));
         r.setPeriodStart(start);
         r.setPeriodEnd(end);
-        r.setToursSold(cur.size());
-        r.setDeltaOfToursSoldPct(changePct(cur.size(), prev.size()));
-        r.setAvgFeedbackRate(avgRating(cur));
-        r.setMinFeedbackRate(minRating(cur));
-        r.setDeltaOfAvgFeedbackPct(changePct(avgRating(cur), avgRating(prev)));
-        r.setRevenueUsd(totalRevenue(cur));
-        r.setDeltaOfRevenuePct(changePct(totalRevenue(cur), totalRevenue(prev)));
+        r.setToursSold(s.toursSold());
+        r.setDeltaOfToursSoldPct(s.deltaToursSold());
+        r.setAvgFeedbackRate(s.avgFeedback());
+        r.setMinFeedbackRate(s.minFeedback());
+        r.setDeltaOfAvgFeedbackPct(s.deltaAvgFeedback());
+        r.setRevenueUsd(s.revenue());
+        r.setDeltaOfRevenuePct(s.deltaRevenue());
         r.setGeneratedAt(Instant.now());
         return r;
     }
@@ -147,18 +165,19 @@ public class StatsAggregationService {
                 .findByTourIdAndPeriodStartAndPeriodEnd(tourId, start, end)
                 .orElse(new TourReportRecord());
 
+        PeriodStats s = computeStats(cur, prev);
         r.setTourId(tourId);
         r.setTourName(firstNonBlank(cur,    BookingRecord::getTourName,    "Unknown"));
         r.setDestination(firstNonBlank(cur, BookingRecord::getDestination, "Unknown"));
         r.setPeriodStart(start);
         r.setPeriodEnd(end);
-        r.setToursSold(cur.size());
-        r.setDeltaOfToursSoldPct(changePct(cur.size(), prev.size()));
-        r.setAvgFeedbackRate(avgRating(cur));
-        r.setMinFeedbackRate(minRating(cur));
-        r.setDeltaOfAvgFeedbackPct(changePct(avgRating(cur), avgRating(prev)));
-        r.setRevenueUsd(totalRevenue(cur));
-        r.setDeltaOfRevenuePct(changePct(totalRevenue(cur), totalRevenue(prev)));
+        r.setToursSold(s.toursSold());
+        r.setDeltaOfToursSoldPct(s.deltaToursSold());
+        r.setAvgFeedbackRate(s.avgFeedback());
+        r.setMinFeedbackRate(s.minFeedback());
+        r.setDeltaOfAvgFeedbackPct(s.deltaAvgFeedback());
+        r.setRevenueUsd(s.revenue());
+        r.setDeltaOfRevenuePct(s.deltaRevenue());
         r.setGeneratedAt(Instant.now());
         return r;
     }
