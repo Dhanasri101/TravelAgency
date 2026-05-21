@@ -10,6 +10,7 @@ import com.epam.edp.demo.enums.BookingState;
 import com.epam.edp.demo.model.Booking;
 import com.epam.edp.demo.model.Tour;
 import com.epam.edp.demo.model.User;
+import com.epam.edp.demo.repository.BookingDocumentRepository;
 import com.epam.edp.demo.repository.BookingRepository;
 import com.epam.edp.demo.repository.TourRepository;
 import com.epam.edp.demo.repository.UserRepository;
@@ -51,6 +52,9 @@ class BookingServiceTest {
     private UserRepository userRepository;
 
     @Mock
+    private BookingDocumentRepository bookingDocumentRepository;
+
+    @Mock
     private DocumentRetentionCleanupService documentRetentionCleanupService;
 
     private BookingService bookingService;
@@ -58,7 +62,7 @@ class BookingServiceTest {
     @BeforeEach
     void setUp() {
         bookingService = new BookingService(bookingRepository, tourRepository, userRepository,
-                documentRetentionCleanupService);
+                bookingDocumentRepository, documentRetentionCleanupService);
     }
 
     @Test
@@ -363,14 +367,17 @@ class BookingServiceTest {
     }
 
     @Test
-    void markFinishedBookings_marksPastEndDateBookingsAsFinished() {
+    void markStartedAndFinishedBookings_marksPastEndDateBookingsAsFinished() {
         Booking done = booked("b-1", "user-1", "tour-1", "1 days", "BB", 1, 0);
         done.setDate(LocalDate.now().minusDays(3));
         Booking active = booked("b-2", "user-1", "tour-1", "10 days", "BB", 1, 0);
         active.setDate(LocalDate.now());
+        when(bookingRepository.findByState(BookingState.CONFIRMED)).thenReturn(List.of());
         when(bookingRepository.findByState(BookingState.BOOKED)).thenReturn(List.of(done, active));
+        when(bookingRepository.findByState(BookingState.DOCUMENTS_VERIFIED)).thenReturn(List.of());
+        when(bookingRepository.findByState(BookingState.STARTED)).thenReturn(List.of());
 
-        bookingService.markFinishedBookings();
+        bookingService.markStartedAndFinishedBookings();
 
         assertEquals(BookingState.FINISHED, done.getState());
         assertEquals(BookingState.BOOKED, active.getState());
@@ -378,24 +385,30 @@ class BookingServiceTest {
     }
 
     @Test
-    void markFinishedBookings_skipsSaveWhenNothingToFinish() {
+    void markStartedAndFinishedBookings_skipsSaveWhenNothingToFinish() {
         Booking active = booked("b-2", "user-1", "tour-1", "10 days", "BB", 1, 0);
         active.setDate(LocalDate.now());
+        when(bookingRepository.findByState(BookingState.CONFIRMED)).thenReturn(List.of());
         when(bookingRepository.findByState(BookingState.BOOKED)).thenReturn(List.of(active));
+        when(bookingRepository.findByState(BookingState.DOCUMENTS_VERIFIED)).thenReturn(List.of());
+        when(bookingRepository.findByState(BookingState.STARTED)).thenReturn(List.of());
 
-        bookingService.markFinishedBookings();
+        bookingService.markStartedAndFinishedBookings();
 
         assertEquals(BookingState.BOOKED, active.getState());
         verify(bookingRepository, never()).saveAll(any());
     }
 
     @Test
-    void markFinishedBookings_ignoresBookingsWithInvalidDuration() {
+    void markStartedAndFinishedBookings_ignoresBookingsWithInvalidDuration() {
         Booking invalid = booked("b-3", "user-1", "tour-1", "n/a", "BB", 1, 0);
         invalid.setDate(LocalDate.now().minusDays(10));
+        when(bookingRepository.findByState(BookingState.CONFIRMED)).thenReturn(List.of());
         when(bookingRepository.findByState(BookingState.BOOKED)).thenReturn(List.of(invalid));
+        when(bookingRepository.findByState(BookingState.DOCUMENTS_VERIFIED)).thenReturn(List.of());
+        when(bookingRepository.findByState(BookingState.STARTED)).thenReturn(List.of());
 
-        bookingService.markFinishedBookings();
+        bookingService.markStartedAndFinishedBookings();
 
         assertEquals(BookingState.FINISHED, invalid.getState());
     }

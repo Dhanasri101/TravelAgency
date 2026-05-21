@@ -13,7 +13,9 @@ import org.springframework.context.annotation.Configuration;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import software.amazon.awssdk.auth.credentials.AwsSessionCredentials;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3Configuration;
@@ -27,8 +29,25 @@ public class DocumentStorageConfig {
 
     private static final Logger log = LoggerFactory.getLogger(DocumentStorageConfig.class);
 
+    @org.springframework.beans.factory.annotation.Value("${aws.access-key:}")
+    private String awsAccessKey;
+
+    @org.springframework.beans.factory.annotation.Value("${aws.secret-key:}")
+    private String awsSecretKey;
+
+    @org.springframework.beans.factory.annotation.Value("${aws.session-token:}")
+    private String awsSessionToken;
+
+    @org.springframework.beans.factory.annotation.Value("${app.documents.storage-provider:s3}")
+    private String storageProvider;
+
     @Bean
     public FileStorageService fileStorageService(DocumentProperties properties) {
+        if ("local".equalsIgnoreCase(storageProvider)) {
+            String localDir = System.getProperty("user.dir") + "/document-uploads";
+            log.info("[DocumentStorage] LOCAL | dir={}", localDir);
+            return new com.epam.edp.demo.service.storage.LocalStorageService(localDir);
+        }
         FileStorageService svc = createS3Storage(properties);
         log.info("[DocumentStorage] S3 | bucket={} | region={} | keyPrefix={}",
                 properties.getS3().getBucket(),
@@ -65,10 +84,22 @@ public class DocumentStorageConfig {
 
         S3ClientBuilder builder = S3Client.builder()
                 .region(Region.of(properties.getS3().getRegion()))
-                .credentialsProvider(DefaultCredentialsProvider.create())
                 .serviceConfiguration(S3Configuration.builder()
                         .pathStyleAccessEnabled(properties.getS3().isPathStyleAccessEnabled())
                         .build());
+
+        // Use explicit credentials from Spring properties if available
+        if (awsAccessKey != null && !awsAccessKey.isBlank() && awsSecretKey != null && !awsSecretKey.isBlank()) {
+            if (awsSessionToken != null && !awsSessionToken.isBlank()) {
+                builder.credentialsProvider(StaticCredentialsProvider.create(
+                        AwsSessionCredentials.create(awsAccessKey, awsSecretKey, awsSessionToken)));
+            } else {
+                builder.credentialsProvider(StaticCredentialsProvider.create(
+                        software.amazon.awssdk.auth.credentials.AwsBasicCredentials.create(awsAccessKey, awsSecretKey)));
+            }
+        } else {
+            builder.credentialsProvider(DefaultCredentialsProvider.create());
+        }
 
         if (properties.getS3().getEndpoint() != null && !properties.getS3().getEndpoint().isBlank()) {
             builder.endpointOverride(URI.create(properties.getS3().getEndpoint()));

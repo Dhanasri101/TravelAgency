@@ -62,6 +62,8 @@ public class BookedTourListResponseDTO {
         private java.util.List<PersonalDetailItem> personalDetails;
         // Agent view: customer who made the booking
         private CustomerDetailsDTO customerDetails;
+        @Schema(description = "Number of active uploaded documents for this booking")
+        private long documentCount;
     }
 
     @Getter
