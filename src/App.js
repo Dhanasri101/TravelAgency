@@ -10,6 +10,9 @@ import TourDetailPage from './pages/TourDetailPage';
 import MyToursPage from './pages/MyToursPage';
 import ReportsPage from './pages/ReportsPage';
 import FeedbackModerationPage from './pages/FeedbackModerationPage';
+import ProfilePage from './pages/ProfilePage';
+import ConfirmEmailPage from './pages/ConfirmEmailPage';
+import AgentBookingsPage from './pages/AgentBookingsPage';
 import ProtectedRoute from './auth/ProtectedRoute';
 import PublicOnlyRoute from './auth/PublicOnlyRoute';
 import AdminRoute from './auth/AdminRoute';
@@ -88,6 +91,26 @@ export default function App() {
             <FeedbackModerationPage />
           </AdminRoute>
         }
+      />
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <ProfilePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/bookings"
+        element={
+          <ProtectedRoute>
+            <AgentBookingsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/confirm-email"
+        element={<ConfirmEmailPage />}
       />
       <Route
         path="*"

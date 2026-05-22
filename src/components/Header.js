@@ -106,15 +106,24 @@ export default function Header({ activeTab, onTabChange }) {
           >
             All tours
           </button>
-          <button
-            className={`nav-tab ${location.pathname === '/my-tours' ? 'active' : ''}`}
-            onClick={() => {
-              onTabChange && onTabChange('my');
-              navigate(user ? '/my-tours' : '/sign-in', user ? undefined : { state: { from: '/my-tours' } });
-            }}
-          >
-            My tours
-          </button>
+          {user?.role === 'TRAVEL_AGENT' ? (
+            <button
+              className={`nav-tab ${location.pathname === '/bookings' ? 'active' : ''}`}
+              onClick={() => { onTabChange && onTabChange('bookings'); navigate('/bookings'); }}
+            >
+              Bookings
+            </button>
+          ) : (
+            <button
+              className={`nav-tab ${location.pathname === '/my-tours' ? 'active' : ''}`}
+              onClick={() => {
+                onTabChange && onTabChange('my');
+                navigate(user ? '/my-tours' : '/sign-in', user ? undefined : { state: { from: '/my-tours' } });
+              }}
+            >
+              My tours
+            </button>
+          )}
           {user && user.role === 'ADMIN' && (
             <button
               className={`nav-tab ${location.pathname === '/reports' ? 'active' : ''}`}
@@ -142,7 +151,11 @@ export default function Header({ activeTab, onTabChange }) {
                 aria-label="User profile"
               >
                 <div className="profile-avatar" aria-hidden="true">
-                  <span className="profile-avatar-initials">{getInitials(userName)}</span>
+                  {user.imageUrl ? (
+                    <img src={user.imageUrl} alt="" className="profile-avatar-image" />
+                  ) : (
+                    <span className="profile-avatar-initials">{getInitials(userName)}</span>
+                  )}
                 </div>
                 {getRoleLabel(user.role) && (
                   <div className="profile-info">
@@ -161,7 +174,7 @@ export default function Header({ activeTab, onTabChange }) {
                       </div>
                     </div>
                     <div className="dropdown-divider"></div>
-                    <button className="dropdown-item">
+                    <button className="dropdown-item" onClick={() => { setProfileDropdownOpen(false); navigate('/profile'); }}>
                       <ProfileIcon />
                       <span>My Profile</span>
                     </button>

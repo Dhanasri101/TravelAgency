@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { client } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import Header from '../components/Header';
@@ -136,7 +136,7 @@ function getCanceledByLabel(canceledBy, currentUserId) {
 }
 
 function getStepIndex(state) {
-  const map = { BOOKED: 0, CONFIRMED: 1, STARTED: 2, FINISHED: 3, CANCELLED: -1 };
+  const map = { BOOKED: 0, DOCUMENTS_VERIFIED: 0, CONFIRMED: 1, STARTED: 2, FINISHED: 3, CANCELLED: -1 };
   return map[state] ?? 0;
 }
 
@@ -189,12 +189,15 @@ function BookingCard({ booking, onCancel, onEdit, onUpload, currentUserId, feedb
   const isFinished = booking.state === 'FINISHED';
   const isStarted = booking.state === 'STARTED';
   const isCancelled = booking.state === 'CANCELLED';
+  const isConfirmed = booking.state === 'CONFIRMED';
   const hasDocuments = tourDetails?.documents && tourDetails.documents !== '0 items';
-  // BOOKED / CONFIRMED only get Cancel + Edit + Upload
-  const showDocActions = !isFinished && !isCancelled && !isStarted;
+  // Cancel is allowed for BOOKED, DOCUMENTS_VERIFIED, CONFIRMED
+  const showCancelAction = !isFinished && !isCancelled && !isStarted;
+  // Edit/Upload only for BOOKED and DOCUMENTS_VERIFIED (not CONFIRMED)
+  const showEditActions = showCancelAction && !isConfirmed;
   const showGiveFeedback = isStarted && !hasFeedback;
   const showUpdateFeedback = isFinished && hasFeedback;
-  const showActionsRow = showDocActions || showGiveFeedback || showUpdateFeedback;
+  const showActionsRow = showCancelAction || showEditActions || showGiveFeedback || showUpdateFeedback;
 
   return (
     <div className={`mt-card ${booking.state === 'CANCELLED' ? 'mt-card-cancelled' : ''}`}>
@@ -252,9 +255,11 @@ function BookingCard({ booking, onCancel, onEdit, onUpload, currentUserId, feedb
       {/* Actions */}
       {showActionsRow && (
         <div className="mt-card-actions">
-          {showDocActions && (
+          {showCancelAction && (
+            <button className="mt-btn-outline" onClick={() => onCancel(booking.id)}>Cancel</button>
+          )}
+          {showEditActions && (
             <>
-              <button className="mt-btn-outline" onClick={() => onCancel(booking.id)}>Cancel</button>
               <button className="mt-btn-outline" onClick={() => onEdit(booking)}>Edit</button>
               <button className="mt-btn-solid" onClick={() => onUpload(booking)}>
                 {hasDocuments ? 'Update documents' : 'Upload documents'}
@@ -296,6 +301,7 @@ export default function MyToursPage() {
   const [statusFilter, setStatusFilter] = useState('All tours');
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const initialLoadDone = useRef(false);
   const [editingBooking, setEditingBooking] = useState(null);
   const [confirmData, setConfirmData] = useState(null);
   const [lastEditedBooking, setLastEditedBooking] = useState(null);
@@ -311,7 +317,7 @@ export default function MyToursPage() {
 
   const fetchBookings = useCallback(async () => {
     if (!user?.id) return;
-    setLoading(true);
+    if (!initialLoadDone.current) setLoading(true);
     try {
       const res = await client.get(`/bookings?userId=${user.id}`);
       const loaded = res.data.bookings || [];
@@ -337,11 +343,18 @@ export default function MyToursPage() {
       setBookings([]);
     } finally {
       setLoading(false);
+      initialLoadDone.current = true;
     }
   }, [user?.id]);
 
   useEffect(() => {
     fetchBookings();
+  }, [fetchBookings]);
+
+  // Auto-refresh every 15 seconds to pick up state changes from agent
+  useEffect(() => {
+    const interval = setInterval(fetchBookings, 15000);
+    return () => clearInterval(interval);
   }, [fetchBookings]);
 
   const handleCancel = (bookingId) => {
@@ -405,12 +418,6 @@ export default function MyToursPage() {
       if (confirmData?.bookingId && confirmData?.payload) {
         await client.put(`/bookings/${confirmData.bookingId}`, confirmData.payload);
       }
-
-      if (confirmData?.bookingId && confirmData?.removedGuestIds?.length) {
-        await client.post(`/bookings/${confirmData.bookingId}/confirm-changes`, {
-          removedGuestIds: confirmData.removedGuestIds,
-        });
-      }
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to finalize booking changes');
     } finally {
@@ -467,7 +474,11 @@ export default function MyToursPage() {
 
   const filtered = statusFilter === 'All tours'
     ? bookings
-    : bookings.filter(b => b.state === statusFilter.toUpperCase());
+    : bookings.filter(b => {
+        const filterState = statusFilter.toUpperCase();
+        if (filterState === 'BOOKED') return b.state === 'BOOKED' || b.state === 'DOCUMENTS_VERIFIED';
+        return b.state === filterState;
+      });
 
   return (
     <div className="app">

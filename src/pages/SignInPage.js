@@ -16,6 +16,9 @@ export default function SignInPage() {
   const redirectTo = typeof state.from === 'string' && state.from.trim() ? state.from : '/';
 
   const [showToast, setShowToast] = useState(Boolean(state.justRegistered));
+  const [showEmailChangedToast, setShowEmailChangedToast] = useState(Boolean(state.emailChanged));
+  const [showInfoToast, setShowInfoToast] = useState(Boolean(state.message));
+  const [infoMessage, setInfoMessage] = useState(state.message || '');
   const [email, setEmail] = useState(state.email || '');
   const [password, setPassword] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
@@ -81,6 +84,22 @@ export default function SignInPage() {
           title="Congratulations"
           message="Your account has been created successfully. Please sign in with the details."
           onClose={() => setShowToast(false)}
+        />
+      )}
+
+      {showEmailChangedToast && (
+        <Toast
+          title="Success"
+          message="Your email has been changed successfully."
+          onClose={() => setShowEmailChangedToast(false)}
+        />
+      )}
+
+      {showInfoToast && (
+        <Toast
+          title="Info"
+          message={infoMessage}
+          onClose={() => setShowInfoToast(false)}
         />
       )}
 

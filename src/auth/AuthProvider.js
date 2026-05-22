@@ -33,6 +33,16 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
+  const refreshUser = useCallback(async () => {
+    if (!token) return;
+    try {
+      const me = await fetchMe();
+      setUser(me);
+    } catch (e) {
+      console.error('Failed to refresh user:', e);
+    }
+  }, [token]);
+
   useEffect(() => {
     setUnauthorizedHandler(() => logout());
     return () => setUnauthorizedHandler(null);
@@ -52,7 +62,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, loginWith, logout }}>
+    <AuthContext.Provider value={{ user, token, loading, loginWith, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );
