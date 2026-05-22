@@ -1,25 +1,18 @@
 package com.epam.edp.demo.config;
 
-import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
-import io.swagger.v3.oas.annotations.info.Contact;
-import io.swagger.v3.oas.annotations.info.Info;
 import io.swagger.v3.oas.annotations.security.SecurityScheme;
-import io.swagger.v3.oas.annotations.servers.Server;
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.info.Contact;
+import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.servers.Server;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.List;
+
 @Configuration
-@OpenAPIDefinition(
-        info = @Info(
-                title = "Travel Agency API",
-                version = "v1",
-                description = "REST API for authentication, tours, and bookings.",
-                contact = @Contact(name = "Travel Agency Team")
-        ),
-        servers = {
-                @Server(url = "http://localhost:8080", description = "Local environment")
-        }
-)
 @SecurityScheme(
         name = "bearerAuth",
         type = SecuritySchemeType.HTTP,
@@ -28,4 +21,32 @@ import org.springframework.context.annotation.Configuration;
         description = "Provide JWT token as: Bearer <token>"
 )
 public class OpenApiConfig {
+
+    @Bean
+    public OpenAPI customOpenAPI(HttpServletRequest request) {
+        // Dynamically build server URL from the incoming request
+        String scheme = request.getScheme();
+        String serverName = request.getServerName();
+        int serverPort = request.getServerPort();
+        
+        String serverUrl;
+        // Don't include standard ports in the URL
+        if ((scheme.equals("http") && serverPort == 80) || (scheme.equals("https") && serverPort == 443)) {
+            serverUrl = scheme + "://" + serverName;
+        } else {
+            serverUrl = scheme + "://" + serverName + ":" + serverPort;
+        }
+
+        Server server = new Server()
+                .url(serverUrl)
+                .description("Current environment - automatically detected");
+
+        return new OpenAPI()
+                .info(new Info()
+                        .title("Travel Agency API")
+                        .version("v1")
+                        .description("REST API for authentication, tours, and bookings.")
+                        .contact(new Contact().name("Travel Agency Team")))
+                .servers(List.of(server));
+    }
 }
