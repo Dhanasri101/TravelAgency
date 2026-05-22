@@ -151,7 +151,7 @@ class BookingControllerTest {
         when(bookingService.cancelBooking("b-1", "user-1", "reason"))
                 .thenReturn(LocalDate.of(2026, 6, 1));
 
-        ResponseEntity<Map<String, Object>> response = bookingController.cancelBooking("b-1", "reason");
+        ResponseEntity<Map<String, Object>> response = bookingController.cancelBooking("b-1", "reason", null);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
@@ -164,7 +164,7 @@ class BookingControllerTest {
         authenticate("user-1", true);
         when(bookingService.cancelBooking("b-1", "user-1", "reason")).thenReturn(null);
 
-        ResponseEntity<Map<String, Object>> response = bookingController.cancelBooking("b-1", "reason");
+        ResponseEntity<Map<String, Object>> response = bookingController.cancelBooking("b-1", "reason", null);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
@@ -176,7 +176,7 @@ class BookingControllerTest {
         authenticate("user-1", true);
         when(bookingService.cancelBooking("b-1", "user-1", null)).thenReturn(null);
 
-        bookingController.cancelBooking("b-1", null);
+        bookingController.cancelBooking("b-1", null, null);
 
         verify(bookingService).cancelBooking("b-1", "user-1", null);
     }
@@ -186,7 +186,7 @@ class BookingControllerTest {
         authenticate("user-1", true);
         when(bookingService.cancelBooking("b-1", "user-1", "changed plans")).thenReturn(null);
 
-        bookingController.cancelBooking("b-1", "changed plans");
+        bookingController.cancelBooking("b-1", "changed plans", null);
 
         verify(bookingService).cancelBooking("b-1", "user-1", "changed plans");
     }
@@ -198,7 +198,7 @@ class BookingControllerTest {
                 .thenThrow(new ResponseStatusException(HttpStatus.CONFLICT, "done"));
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> bookingController.cancelBooking("b-1", "reason"));
+                () -> bookingController.cancelBooking("b-1", "reason", null));
 
         assertEquals(HttpStatus.CONFLICT, ex.getStatusCode());
     }
@@ -268,7 +268,7 @@ class BookingControllerTest {
         SecurityContextHolder.clearContext();
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> bookingController.cancelBooking("b-1", "reason"));
+                () -> bookingController.cancelBooking("b-1", "reason", null));
 
         assertEquals(HttpStatus.UNAUTHORIZED, ex.getStatusCode());
     }
@@ -278,7 +278,7 @@ class BookingControllerTest {
         authenticate("user-1", false);
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> bookingController.cancelBooking("b-1", "reason"));
+                () -> bookingController.cancelBooking("b-1", "reason", null));
 
         assertEquals(HttpStatus.UNAUTHORIZED, ex.getStatusCode());
     }
@@ -288,7 +288,7 @@ class BookingControllerTest {
         setAuthentication(new TestingAuthenticationToken(null, null, "ROLE_USER"));
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> bookingController.cancelBooking("b-1", "reason"));
+                () -> bookingController.cancelBooking("b-1", "reason", null));
 
         assertEquals(HttpStatus.UNAUTHORIZED, ex.getStatusCode());
     }

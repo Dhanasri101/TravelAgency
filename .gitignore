@@ -40,4 +40,5 @@ backend-status.log.*
 
 ### secrets ###
 .env
+.env.properties
 src/main/resources/application-local.properties

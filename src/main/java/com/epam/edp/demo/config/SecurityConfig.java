@@ -63,7 +63,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/tours/*/feedback").authenticated()
                 .requestMatchers("/api/v1/reports/**").hasRole("ADMIN")
                 .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
-                .anyRequest().permitAll()
+                    .requestMatchers("/api/v1/users/**").authenticated()
+                    .anyRequest().permitAll()
             )
             .exceptionHandling(e -> e.authenticationEntryPoint((req, res, ex) -> {
                 res.setStatus(HttpStatus.UNAUTHORIZED.value());

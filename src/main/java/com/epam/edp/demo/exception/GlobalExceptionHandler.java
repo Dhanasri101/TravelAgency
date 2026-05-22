@@ -112,6 +112,13 @@ public class GlobalExceptionHandler {
                 .body(simpleBody(status, status.getReasonPhrase(), message));
     }
 
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<Map<String, Object>> handleRuntimeException(RuntimeException ex) {
+        // Log the exception for debugging
+        return ResponseEntity.badRequest()
+                .body(simpleBody(HttpStatus.BAD_REQUEST, "Bad Request", ex.getMessage()));
+    }
+
     private static Map<String, Object> simpleBody(HttpStatus status, String error, String message) {
         Map<String, Object> b = new LinkedHashMap<>();
         b.put(KEY_TIMESTAMP, Instant.now());

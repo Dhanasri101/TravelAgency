@@ -105,10 +105,7 @@ public class BookingController {
         }
 
         if (agentId != null && !agentId.isBlank()) {
-            if (!OBJECT_ID_PATTERN.matcher(agentId.trim()).matches()) {
-                throw new IllegalArgumentException("Invalid agentId format");
-            }
-            BookedTourListResponseDTO response = bookingService.getBookingsForAgent(agentId, authenticatedUserId);
+            BookedTourListResponseDTO response = bookingService.getBookingsForAgent(agentId.trim(), authenticatedUserId);
             return ResponseEntity.ok(response);
         }
 
@@ -133,10 +130,16 @@ public class BookingController {
             @Parameter(description = "Booking identifier", required = true, example = "6641b2ea5c8f8d4f1ab67890")
             @PathVariable String id,
             @Parameter(description = "Optional reason for cancellation", example = "Change of travel plans")
-            @RequestParam(required = false) String cancelReason
+            @RequestParam(required = false) String cancelReason,
+            @RequestBody(required = false) Map<String, String> requestBody
     ) {
         String authenticatedUserId = getAuthenticatedUserId();
-        LocalDate freeCancelDeadline = bookingService.cancelBooking(id, authenticatedUserId, cancelReason);
+        // Support cancelReason from query param OR request body
+        String reason = cancelReason;
+        if (reason == null && requestBody != null && requestBody.containsKey("cancelReason")) {
+            reason = requestBody.get("cancelReason");
+        }
+        LocalDate freeCancelDeadline = bookingService.cancelBooking(id, authenticatedUserId, reason);
 
         Map<String, Object> body = new java.util.LinkedHashMap<>();
         body.put("message", "Booking cancelled successfully");
@@ -182,6 +185,48 @@ public class BookingController {
     ) {
         String authenticatedUserId = getAuthenticatedUserId();
         Map<String, Object> response = bookingService.confirmBookingChanges(id, authenticatedUserId, request);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * PATCH /api/v1/bookings/{id}/verify-documents
+     * Travel Agent verifies all documents for a booking.
+     */
+    @PatchMapping("/{id}/verify-documents")
+    @Operation(summary = "Verify documents", description = "Travel Agent marks all customer documents as verified.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Documents verified"),
+        @ApiResponse(responseCode = "403", description = "Forbidden",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponseDTO.class))),
+        @ApiResponse(responseCode = "404", description = "Booking not found",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponseDTO.class)))
+    })
+    public ResponseEntity<Map<String, Object>> verifyDocuments(
+            @PathVariable String id
+    ) {
+        String authenticatedUserId = getAuthenticatedUserId();
+        Map<String, Object> response = bookingService.verifyDocuments(id, authenticatedUserId);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * PATCH /api/v1/bookings/{id}/confirm
+     * Travel Agent confirms a booking after document verification.
+     */
+    @PatchMapping("/{id}/confirm")
+    @Operation(summary = "Confirm booking", description = "Travel Agent confirms the booking after checking documents.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Booking confirmed"),
+        @ApiResponse(responseCode = "403", description = "Forbidden",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponseDTO.class))),
+        @ApiResponse(responseCode = "404", description = "Booking not found",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponseDTO.class)))
+    })
+    public ResponseEntity<Map<String, Object>> confirmBooking(
+            @PathVariable String id
+    ) {
+        String authenticatedUserId = getAuthenticatedUserId();
+        Map<String, Object> response = bookingService.confirmBooking(id, authenticatedUserId);
         return ResponseEntity.ok(response);
     }
 

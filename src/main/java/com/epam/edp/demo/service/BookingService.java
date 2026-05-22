@@ -8,9 +8,11 @@ import com.epam.edp.demo.dto.CreateBookingResponseDTO;
 import com.epam.edp.demo.dto.PersonalDetailDTO;
 import com.epam.edp.demo.dto.UpdateBookingRequestDTO;
 import com.epam.edp.demo.enums.BookingState;
+import com.epam.edp.demo.enums.DocumentLifecycleStatus;
 import com.epam.edp.demo.model.Booking;
 import com.epam.edp.demo.model.Tour;
 import com.epam.edp.demo.model.User;
+import com.epam.edp.demo.repository.BookingDocumentRepository;
 import com.epam.edp.demo.repository.BookingRepository;
 import com.epam.edp.demo.repository.TourRepository;
 import com.epam.edp.demo.repository.UserRepository;
@@ -41,6 +43,7 @@ public class BookingService {
     private final BookingRepository bookingRepository;
     private final TourRepository tourRepository;
     private final UserRepository userRepository;
+    private final BookingDocumentRepository bookingDocumentRepository;
     private final DocumentRetentionCleanupService documentRetentionCleanupService;
     private final ConcurrentMap<String, ReentrantLock> tourBookingLocks = new ConcurrentHashMap<>();
 
@@ -50,10 +53,12 @@ public class BookingService {
     public BookingService(BookingRepository bookingRepository,
                           TourRepository tourRepository,
                           UserRepository userRepository,
+                          BookingDocumentRepository bookingDocumentRepository,
                           DocumentRetentionCleanupService documentRetentionCleanupService) {
         this.bookingRepository = bookingRepository;
         this.tourRepository = tourRepository;
         this.userRepository = userRepository;
+        this.bookingDocumentRepository = bookingDocumentRepository;
         this.documentRetentionCleanupService = documentRetentionCleanupService;
     }
 
@@ -219,7 +224,7 @@ public class BookingService {
     }
 
     // ─────────────────────────────────────────────
-    // Cancel booking (US6)
+    // Cancel booking (US6 + US8)
     // ─────────────────────────────────────────────
     public LocalDate cancelBooking(String bookingId, String authenticatedUserId, String cancelReason) {
 
@@ -227,10 +232,11 @@ public class BookingService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         BOOKING_NOT_FOUND + bookingId));
 
-        // Only the booking owner can cancel
-        if (!booking.getUserId().equals(authenticatedUserId)) {
+        // Allow the booking owner OR the assigned travel agent to cancel
+        if (!booking.getUserId().equals(authenticatedUserId)
+                && !isAssignedAgent(booking.getTourId(), authenticatedUserId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "You can only cancel your own bookings");
+                    "You can only cancel your own bookings or bookings for tours assigned to you");
         }
 
         if (booking.getState() == BookingState.CANCELLED) {
@@ -329,16 +335,98 @@ public class BookingService {
         return response;
     }
 
-    private void validateBookingForEdit(Booking booking, String authenticatedUserId) {
-        if (!booking.getUserId().equals(authenticatedUserId)) {
+    // ─────────────────────────────────────────────
+    // Verify documents (US8 - AC3)
+    // Travel Agent marks documents as verified
+    // ─────────────────────────────────────────────
+    public Map<String, Object> verifyDocuments(String bookingId, String authenticatedUserId) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        BOOKING_NOT_FOUND + bookingId));
+
+        // Only the assigned travel agent can verify documents
+        if (!isAssignedAgent(booking.getTourId(), authenticatedUserId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "You can only edit your own bookings");
+                    "Only the assigned travel agent can verify documents");
+        }
+
+        if (booking.getState() != BookingState.BOOKED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Documents can only be verified for bookings in BOOKED state");
+        }
+
+        booking.setState(BookingState.DOCUMENTS_VERIFIED);
+        bookingRepository.save(booking);
+
+        Map<String, Object> response = new java.util.LinkedHashMap<>();
+        response.put("message", "Documents verified successfully");
+        response.put("bookingId", bookingId);
+        response.put("newState", BookingState.DOCUMENTS_VERIFIED.name());
+        return response;
+    }
+
+    // ─────────────────────────────────────────────
+    // Confirm booking (US8 - AC3/AC4)
+    // Travel Agent confirms after document check
+    // ─────────────────────────────────────────────
+    public Map<String, Object> confirmBooking(String bookingId, String authenticatedUserId) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        BOOKING_NOT_FOUND + bookingId));
+
+        // Only the assigned travel agent can confirm
+        if (!isAssignedAgent(booking.getTourId(), authenticatedUserId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Only the assigned travel agent can confirm bookings");
+        }
+
+        if (booking.getState() != BookingState.BOOKED
+                && booking.getState() != BookingState.DOCUMENTS_VERIFIED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Booking can only be confirmed from BOOKED or DOCUMENTS_VERIFIED state");
+        }
+
+        booking.setState(BookingState.CONFIRMED);
+        bookingRepository.save(booking);
+
+        Map<String, Object> response = new java.util.LinkedHashMap<>();
+        response.put("message", "Booking confirmed successfully");
+        response.put("bookingId", bookingId);
+        response.put("newState", BookingState.CONFIRMED.name());
+        return response;
+    }
+
+    // ─────────────────────────────────────────────
+    // Helper: check if user is the assigned agent for a tour
+    // ─────────────────────────────────────────────
+    private boolean isAssignedAgent(String tourId, String userId) {
+        if (tourId == null || userId == null) {
+            return false;
+        }
+        Tour tour = tourRepository.findById(tourId).orElse(null);
+        return tour != null && userId.equals(tour.getAssignedAgentId());
+    }
+
+    private void validateBookingForEdit(Booking booking, String authenticatedUserId) {
+        // Allow the booking owner OR the assigned travel agent to edit
+        if (!booking.getUserId().equals(authenticatedUserId)
+                && !isAssignedAgent(booking.getTourId(), authenticatedUserId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "You can only edit your own bookings or bookings for tours assigned to you");
         }
         if (booking.getState() == BookingState.CANCELLED) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Cannot edit a cancelled booking");
         }
         if (booking.getState() == BookingState.FINISHED) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Cannot edit a finished booking");
+        }
+        if (booking.getState() == BookingState.CONFIRMED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Cannot edit a confirmed booking. Only cancellation is allowed.");
+        }
+        if (booking.getState() == BookingState.STARTED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Cannot edit a booking that has already started.");
         }
     }
 
@@ -403,12 +491,38 @@ public class BookingService {
     // Runs every day at midnight
     // ─────────────────────────────────────────────
     @Scheduled(cron = "0 0 0 * * *")
-    public void markFinishedBookings() {
-        List<Booking> bookedList = bookingRepository.findByState(BookingState.BOOKED);
+    public void markStartedAndFinishedBookings() {
         LocalDate today = LocalDate.now();
 
+        // 1. Transition CONFIRMED → STARTED when tour start date arrives
+        List<Booking> confirmedBookings = bookingRepository.findByState(BookingState.CONFIRMED);
+        List<Booking> toStart = new ArrayList<>();
+        for (Booking b : confirmedBookings) {
+            if (b.getDate() != null && !today.isBefore(b.getDate())) {
+                int days = parseDurationDays(b.getDuration());
+                LocalDate endDate = b.getDate().plusDays(days);
+                if (today.isBefore(endDate)) {
+                    b.setState(BookingState.STARTED);
+                    toStart.add(b);
+                }
+            }
+        }
+        if (!toStart.isEmpty()) {
+            bookingRepository.saveAll(toStart);
+            toStart.forEach(b -> {
+                Tour t = tourRepository.findById(b.getTourId()).orElse(null);
+                publishEvent("BOOKING_STARTED", b, t);
+            });
+        }
+
+        // 2. Transition active bookings → FINISHED when end date passes
+        List<Booking> activeBookings = new ArrayList<>();
+        activeBookings.addAll(bookingRepository.findByState(BookingState.BOOKED));
+        activeBookings.addAll(bookingRepository.findByState(BookingState.DOCUMENTS_VERIFIED));
+        activeBookings.addAll(bookingRepository.findByState(BookingState.CONFIRMED));
+        activeBookings.addAll(bookingRepository.findByState(BookingState.STARTED));
         List<Booking> toFinish = new ArrayList<>();
-        for (Booking b : bookedList) {
+        for (Booking b : activeBookings) {
             if (b.getDate() != null && b.getDuration() != null) {
                 int days = parseDurationDays(b.getDuration());
                 LocalDate endDate = b.getDate().plusDays(days);
@@ -421,7 +535,6 @@ public class BookingService {
 
         if (!toFinish.isEmpty()) {
             bookingRepository.saveAll(toFinish);
-            // Publish BOOKING_FINISHED events (non-blocking)
             toFinish.forEach(b -> {
                 Tour t = tourRepository.findById(b.getTourId()).orElse(null);
                 publishEvent("BOOKING_FINISHED", b, t);
@@ -441,6 +554,9 @@ public class BookingService {
         String destination  = resolveDestination(booking, tour);
         String tourImageUrl = resolveTourImageUrl(booking, tour);
         double rating       = (tour != null && tour.getRating() != null) ? tour.getRating() : 0.0;
+
+        long docCount = bookingDocumentRepository.countByBookingIdAndLifecycleStatus(
+                booking.getId(), DocumentLifecycleStatus.ACTIVE);
 
         return BookedTourListResponseDTO.BookingItem.builder()
                 .id(booking.getId())
@@ -462,6 +578,7 @@ public class BookingService {
                 .freeCancellationDate(resolveFreeCancellationDate(booking, tour))
                 .personalDetails(mapPersonalDetailItems(booking))
                 .customerDetails(customerDetails)
+                .documentCount(docCount)
                 .build();
     }
 

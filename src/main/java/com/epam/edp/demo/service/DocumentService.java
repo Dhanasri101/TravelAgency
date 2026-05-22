@@ -18,6 +18,8 @@ import com.epam.edp.demo.service.security.DocumentEncryptionService;
 import com.epam.edp.demo.service.storage.FileStorageService;
 import com.epam.edp.demo.service.storage.StoredFileDescriptor;
 import com.epam.edp.demo.service.validation.DocumentValidationService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -33,6 +35,7 @@ import java.util.UUID;
 @Service
 public class DocumentService {
 
+    private static final Logger log = LoggerFactory.getLogger(DocumentService.class);
     private static final DateTimeFormatter TS_FORMAT = DateTimeFormatter.ofPattern("yyyyMMddHHmmssSSS")
             .withZone(ZoneOffset.UTC);
 
@@ -108,6 +111,7 @@ public class DocumentService {
         try {
             stored = fileStorageService.store(relativePath, encryptedBytes, "application/octet-stream");
         } catch (RuntimeException ex) {
+            log.error("S3 upload failed for booking={}: {}", bookingId, ex.getMessage(), ex);
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
                     "Document storage is unavailable. Verify S3 bucket/credentials and retry.");
         }
