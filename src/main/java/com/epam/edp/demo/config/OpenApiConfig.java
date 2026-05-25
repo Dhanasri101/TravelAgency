@@ -37,9 +37,17 @@ public class OpenApiConfig {
             serverUrl = scheme + "://" + serverName + ":" + serverPort;
         }
 
-        Server server = new Server()
+        Server currentServer = new Server()
                 .url(serverUrl)
                 .description("Current environment - automatically detected");
+
+        Server productionServer = new Server()
+                .url("https://sprint1-run23-team3-develop-dev-deploy.development.krci-dev.cloudmentor.academy")
+                .description("Production environment");
+
+        Server localServer = new Server()
+                .url("http://localhost:8080")
+                .description("Local development");
 
         return new OpenAPI()
                 .info(new Info()
@@ -47,6 +55,6 @@ public class OpenApiConfig {
                         .version("v1")
                         .description("REST API for authentication, tours, and bookings.")
                         .contact(new Contact().name("Travel Agency Team")))
-                .servers(List.of(server));
+                .servers(List.of(productionServer, localServer, currentServer));
     }
 }
