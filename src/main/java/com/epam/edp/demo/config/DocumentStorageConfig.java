@@ -1,12 +1,15 @@
 package com.epam.edp.demo.config;
 
+import com.epam.edp.demo.repository.DocumentContentRepository;
 import com.epam.edp.demo.service.security.ClamAvMalwareScanner;
 import com.epam.edp.demo.service.security.DocumentEncryptionService;
 import com.epam.edp.demo.service.security.MalwareScanner;
 import com.epam.edp.demo.service.security.NoOpMalwareScanner;
 import com.epam.edp.demo.service.storage.FileStorageService;
+import com.epam.edp.demo.service.storage.MongoDbStorageService;
 import com.epam.edp.demo.service.storage.S3StorageService;
 import com.epam.edp.demo.service.validation.DocumentValidationService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -38,8 +41,11 @@ public class DocumentStorageConfig {
     @org.springframework.beans.factory.annotation.Value("${aws.session-token:}")
     private String awsSessionToken;
 
-    @org.springframework.beans.factory.annotation.Value("${app.documents.storage-provider:s3}")
+    @org.springframework.beans.factory.annotation.Value("${app.documents.storage-provider:mongodb}")
     private String storageProvider;
+
+    @Autowired
+    private DocumentContentRepository documentContentRepository;
 
     @Bean
     public FileStorageService fileStorageService(DocumentProperties properties) {
@@ -47,6 +53,10 @@ public class DocumentStorageConfig {
             String localDir = System.getProperty("user.dir") + "/document-uploads";
             log.info("[DocumentStorage] LOCAL | dir={}", localDir);
             return new com.epam.edp.demo.service.storage.LocalStorageService(localDir);
+        }
+        if ("mongodb".equalsIgnoreCase(storageProvider)) {
+            log.info("[DocumentStorage] MONGODB | storing document content in database");
+            return new MongoDbStorageService(documentContentRepository);
         }
         FileStorageService svc = createS3Storage(properties);
         log.info("[DocumentStorage] S3 | bucket={} | region={} | keyPrefix={}",
