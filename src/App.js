@@ -13,6 +13,7 @@ import FeedbackModerationPage from './pages/FeedbackModerationPage';
 import ProfilePage from './pages/ProfilePage';
 import ConfirmEmailPage from './pages/ConfirmEmailPage';
 import AgentBookingsPage from './pages/AgentBookingsPage';
+import OAuthSuccessPage from './pages/OAuthSuccessPage';
 import ProtectedRoute from './auth/ProtectedRoute';
 import PublicOnlyRoute from './auth/PublicOnlyRoute';
 import AdminRoute from './auth/AdminRoute';
@@ -111,6 +112,11 @@ export default function App() {
       <Route
         path="/confirm-email"
         element={<ConfirmEmailPage />}
+      />
+      {/* OAuth2 social login callback — must be public, not wrapped in PublicOnlyRoute */}
+      <Route
+        path="/oauth-success"
+        element={<OAuthSuccessPage />}
       />
       <Route
         path="*"

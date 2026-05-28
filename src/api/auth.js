@@ -1,4 +1,4 @@
-import { client } from './client';
+import { client, API_BASE_URL } from './client';
 
 function normalize(err) {
   if (err.response?.data) {
@@ -32,4 +32,18 @@ export async function fetchMe() {
   } catch (err) {
     throw normalize(err);
   }
+}
+
+// Social login — redirects the browser to the backend OAuth2 authorization endpoint.
+// The backend then redirects to the OAuth provider (Google / GitHub).
+export function loginWithGoogle() {
+  window.location.href = `${API_BASE_URL}/oauth2/authorization/google`;
+}
+
+export function loginWithGitHub() {
+  window.location.href = `${API_BASE_URL}/oauth2/authorization/github`;
+}
+
+export function loginWithFacebook() {
+  window.location.href = `${API_BASE_URL}/oauth2/authorization/facebook`;
 }
