@@ -1,25 +1,18 @@
 package com.epam.edp.demo.config;
 
-import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
-import io.swagger.v3.oas.annotations.info.Contact;
-import io.swagger.v3.oas.annotations.info.Info;
 import io.swagger.v3.oas.annotations.security.SecurityScheme;
-import io.swagger.v3.oas.annotations.servers.Server;
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.info.Contact;
+import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.servers.Server;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.List;
+
 @Configuration
-@OpenAPIDefinition(
-        info = @Info(
-                title = "Travel Agency API",
-                version = "v1",
-                description = "REST API for authentication, tours, and bookings.",
-                contact = @Contact(name = "Travel Agency Team")
-        ),
-        servers = {
-                @Server(url = "http://localhost:8080", description = "Local environment")
-        }
-)
 @SecurityScheme(
         name = "bearerAuth",
         type = SecuritySchemeType.HTTP,
@@ -28,4 +21,23 @@ import org.springframework.context.annotation.Configuration;
         description = "Provide JWT token as: Bearer <token>"
 )
 public class OpenApiConfig {
+
+    @Bean
+    public OpenAPI customOpenAPI() {
+        Server productionServer = new Server()
+                .url("https://sprint1-run23-team3-develop-dev-deploy.development.krci-dev.cloudmentor.academy")
+                .description("Production environment");
+
+        Server localServer = new Server()
+                .url("http://localhost:8080")
+                .description("Local development");
+
+        return new OpenAPI()
+                .info(new Info()
+                        .title("Travel Agency API")
+                        .version("v1")
+                        .description("REST API for authentication, tours, and bookings.")
+                        .contact(new Contact().name("Travel Agency Team")))
+                .servers(List.of(productionServer, localServer));
+    }
 }

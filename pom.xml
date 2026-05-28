@@ -97,6 +97,12 @@
             <version>2.25.64</version>
         </dependency>
 
+        <!-- OAuth2 Client for Social Login (Google, Facebook) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-oauth2-client</artifactId>
+        </dependency>
+
     </dependencies>
 
     <build>
