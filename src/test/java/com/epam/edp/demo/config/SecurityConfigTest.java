@@ -8,6 +8,7 @@ import com.epam.edp.demo.security.JwtAuthenticationFilter;
 import com.epam.edp.demo.security.JwtService;
 import com.epam.edp.demo.service.PasswordResetService;
 import com.epam.edp.demo.service.UserService;
+import com.epam.edp.demo.service.CaptchaService;
 import org.mockito.Mockito;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,6 +46,10 @@ public class SecurityConfigTest {
         @Bean
         PasswordResetService passwordResetService() {
             return Mockito.mock(PasswordResetService.class);
+        }
+        @Bean
+        CaptchaService captchaService() {
+            return Mockito.mock(CaptchaService.class);
         }
         @Bean(name = "mongoMappingContext")
         MongoMappingContext mongoMappingContext() {
