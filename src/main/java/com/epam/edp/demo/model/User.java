@@ -10,6 +10,7 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import com.epam.edp.demo.enums.AuthProvider;
 import com.epam.edp.demo.enums.Role;
 
 import java.time.Instant;
@@ -29,6 +30,7 @@ public class User {
     @Indexed(unique = true)
     private String email;
 
+    // Nullable for social login users (they authenticate via OAuth2 provider)
     private String passwordHash;
 
     private Role role;
@@ -48,6 +50,12 @@ public class User {
     private int failedLoginAttempts;
     private Instant lockedUntil;
 
+    // Social login fields (US_16 - Social Media Logins)
+    // Provider defaults to LOCAL for normal email/password users
+    private AuthProvider provider = AuthProvider.LOCAL;
+    // Unique ID returned by Google (sub) or Facebook (id)
+    private String providerId;
+
     @CreatedDate
     private Instant createdAt;
 
@@ -64,9 +72,15 @@ public class User {
         this.email = email;
         this.passwordHash = passwordHash;
         this.role = role;
+        this.provider = AuthProvider.LOCAL;
     }
 
     public Role getRole() {
         return role == null ? Role.CUSTOMER : role;
     }
+
+    public AuthProvider getProvider() {
+        return provider == null ? AuthProvider.LOCAL : provider;
+    }
 }
+

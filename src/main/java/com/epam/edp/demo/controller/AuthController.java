@@ -17,6 +17,8 @@ import com.epam.edp.demo.dto.SignUpRequestDTO;
 import com.epam.edp.demo.dto.SignUpResponseDTO;
 import com.epam.edp.demo.dto.UserResponseDTO;
 import com.epam.edp.demo.dto.ApiErrorResponseDTO;
+import com.epam.edp.demo.dto.AuthUserResponseDTO;
+import com.epam.edp.demo.dto.LoginUrlResponseDTO;
 import com.epam.edp.demo.dto.PasswordResetRequestDTO;
 import com.epam.edp.demo.dto.VerifyResetCodeDTO;
 import com.epam.edp.demo.dto.ResetPasswordDTO;
@@ -120,6 +122,94 @@ public class AuthController {
     public ResponseEntity<Map<String, String>> resetPassword(@Valid @RequestBody ResetPasswordDTO request) {
         passwordResetService.resetPassword(request.getEmail(), request.getCode(), request.getNewPassword());
         return ResponseEntity.ok(Map.of("message", "Password has been reset successfully"));
+    }
+
+    /**
+     * US_16 - Social Media Logins
+     *
+     * Returns the OAuth2 login initiation URL for Google.
+     * Frontend should redirect the user to this URL to start the Google login flow.
+     *
+     * GET /api/v1/auth/login-url/google
+     * Response: { "provider": "google", "loginUrl": "http://localhost:8080/oauth2/authorization/google" }
+     */
+    @GetMapping("/login-url/google")
+    @Operation(summary = "Get Google OAuth2 login URL",
+               description = "Returns the URL to initiate Google social login. Frontend redirects user to this URL.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Google login URL",
+            content = @Content(schema = @Schema(implementation = LoginUrlResponseDTO.class)))
+    })
+    public ResponseEntity<LoginUrlResponseDTO> googleLoginUrl() {
+        return ResponseEntity.ok(new LoginUrlResponseDTO("google", "http://localhost:8080/oauth2/authorization/google"));
+    }
+
+    /**
+     * US_16 - Social Media Logins
+     *
+     * Returns the OAuth2 login initiation URL for GitHub.
+     * Frontend should redirect the user to this URL to start the GitHub login flow.
+     *
+     * GET /api/v1/auth/login-url/github
+     * Response: { "provider": "github", "loginUrl": "http://localhost:8080/oauth2/authorization/github" }
+     */
+    @GetMapping("/login-url/github")
+    @Operation(summary = "Get GitHub OAuth2 login URL",
+               description = "Returns the URL to initiate GitHub social login. Frontend redirects user to this URL.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "GitHub login URL",
+            content = @Content(schema = @Schema(implementation = LoginUrlResponseDTO.class)))
+    })
+    public ResponseEntity<LoginUrlResponseDTO> githubLoginUrl() {
+        return ResponseEntity.ok(new LoginUrlResponseDTO("github", "http://localhost:8080/oauth2/authorization/github"));
+    }
+
+    /**
+     * US_16 - Social Media Logins
+     *
+     * Returns the OAuth2 login initiation URL for Facebook.
+     * Frontend should redirect the user to this URL to start the Facebook login flow.
+     *
+     * GET /api/v1/auth/login-url/facebook
+     * Response: { "provider": "facebook", "loginUrl": "http://localhost:8080/oauth2/authorization/facebook" }
+     */
+    @GetMapping("/login-url/facebook")
+    @Operation(summary = "Get Facebook OAuth2 login URL",
+               description = "Returns the URL to initiate Facebook social login. Frontend redirects user to this URL.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Facebook login URL",
+            content = @Content(schema = @Schema(implementation = LoginUrlResponseDTO.class)))
+    })
+    public ResponseEntity<LoginUrlResponseDTO> facebookLoginUrl() {
+        return ResponseEntity.ok(new LoginUrlResponseDTO("facebook", "http://localhost:8080/oauth2/authorization/facebook"));
+    }
+
+    /**
+     * US_16 - Social Media Logins
+     *
+     * Returns current authenticated user details including OAuth2 provider info.
+     * Works for both standard JWT login and social login users.
+     *
+     * GET /api/v1/auth/social/me
+     */
+    @GetMapping("/social/me")
+    @Operation(summary = "Get current user with provider info",
+               description = "Returns profile including OAuth2 provider for social login users.")
+    @SecurityRequirement(name = "bearerAuth")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Current user details with provider",
+            content = @Content(schema = @Schema(implementation = AuthUserResponseDTO.class))),
+        @ApiResponse(responseCode = "401", description = "Missing or invalid token",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponseDTO.class)))
+    })
+    public ResponseEntity<AuthUserResponseDTO> socialMe() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || auth.getPrincipal() == null) {
+            throw new UnauthenticatedException("Missing or invalid token");
+        }
+        String userId = auth.getName();
+        User user = userService.requireById(userId);
+        return ResponseEntity.ok(AuthUserResponseDTO.from(user));
     }
 }
 
