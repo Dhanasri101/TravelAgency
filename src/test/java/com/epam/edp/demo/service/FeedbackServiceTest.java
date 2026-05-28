@@ -7,14 +7,19 @@ import com.epam.edp.demo.dto.FeedbackUpdateRequest;
 import com.epam.edp.demo.dto.FeedbackUpdatedEvent;
 import com.epam.edp.demo.enums.BookingState;
 import com.epam.edp.demo.enums.FeedbackStatus;
+import com.epam.edp.demo.enums.ModerationStatus;
+import com.epam.edp.demo.exception.ContentModerationException;
 import com.epam.edp.demo.exception.FeedbackNotAllowedException;
 import com.epam.edp.demo.exception.FeedbackNotFoundException;
+import com.epam.edp.demo.exception.FeedbackRejectedException;
 import com.epam.edp.demo.model.Booking;
 import com.epam.edp.demo.model.Feedback;
 import com.epam.edp.demo.model.Tour;
 import com.epam.edp.demo.repository.BookingRepository;
 import com.epam.edp.demo.repository.FeedbackRepository;
 import com.epam.edp.demo.repository.TourRepository;
+import com.epam.edp.demo.service.moderation.ModerationResult;
+import com.epam.edp.demo.service.moderation.ModerationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,6 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -47,13 +53,20 @@ class FeedbackServiceTest {
     private TourRepository tourRepository;
     @Mock
     private ApplicationEventPublisher eventPublisher;
+    @Mock
+    private ModerationService moderationService;
 
     private FeedbackService feedbackService;
+
+    /** Default APPROVED moderation result – override in individual tests when needed. */
+    private static final ModerationResult APPROVED =
+            new ModerationResult(ModerationStatus.APPROVED, "Content is acceptable.");
 
     @BeforeEach
     void setUp() {
         feedbackService = new FeedbackService(
-                feedbackRepository, bookingRepository, tourRepository, eventPublisher);
+                feedbackRepository, bookingRepository, tourRepository,
+                eventPublisher, moderationService);
     }
 
     // ─────────────────────────────────────────────
@@ -128,11 +141,13 @@ class FeedbackServiceTest {
     }
 
     @Test
-    void submitFeedback_validRequest_savesAndPublishesEvent() {
+    void submitFeedback_validRequest_savesWithApprovedStatusAndPublishesEvent() {
         Booking booking = booking("b-1", "u-1", BookingState.STARTED);
         when(bookingRepository.findById("b-1")).thenReturn(Optional.of(booking));
         when(feedbackRepository.existsByBookingId("b-1")).thenReturn(false);
+        when(moderationService.moderate(any())).thenReturn(APPROVED);
         Feedback saved = feedback("f-1", "b-1", "tour-1", "u-1", 5, null);
+        saved.setStatus(FeedbackStatus.APPROVED);
         when(feedbackRepository.save(any(Feedback.class))).thenReturn(saved);
 
         FeedbackResponse response = feedbackService.submitFeedback("b-1", "u-1", request(5, null));
@@ -140,6 +155,7 @@ class FeedbackServiceTest {
         assertNotNull(response);
         assertEquals("f-1", response.getId());
         assertEquals(5, response.getRating());
+        assertEquals("APPROVED", response.getStatus());
         verify(eventPublisher).publishEvent(any(FeedbackSubmittedEvent.class));
     }
 
@@ -148,7 +164,9 @@ class FeedbackServiceTest {
         Booking booking = booking("b-1", "u-1", BookingState.FINISHED);
         when(bookingRepository.findById("b-1")).thenReturn(Optional.of(booking));
         when(feedbackRepository.existsByBookingId("b-1")).thenReturn(false);
+        when(moderationService.moderate(any())).thenReturn(APPROVED);
         Feedback saved = feedback("f-1", "b-1", "tour-1", "u-1", 4, null);
+        saved.setStatus(FeedbackStatus.APPROVED);
         when(feedbackRepository.save(any(Feedback.class))).thenReturn(saved);
 
         FeedbackResponse response = feedbackService.submitFeedback("b-1", "u-1", request(4, null));
@@ -167,6 +185,57 @@ class FeedbackServiceTest {
                 () -> feedbackService.submitFeedback("b-1", "u-1", request(5, "Great trip!")));
 
         assertNotNull(ex.getMessage());
+        verify(feedbackRepository, never()).save(any());
+    }
+
+    @Test
+    void submitFeedback_moderationFlagged_throwsFeedbackRejectedException() {
+        Booking booking = booking("b-1", "u-1", BookingState.STARTED);
+        when(bookingRepository.findById("b-1")).thenReturn(Optional.of(booking));
+        when(feedbackRepository.existsByBookingId("b-1")).thenReturn(false);
+        ModerationResult flagged = new ModerationResult(ModerationStatus.FLAGGED,
+                "Content contains hate speech.");
+        when(moderationService.moderate(anyString())).thenReturn(flagged);
+
+        FeedbackRejectedException ex = assertThrows(FeedbackRejectedException.class,
+                () -> feedbackService.submitFeedback("b-1", "u-1",
+                        request(5, "I hate this tour and all the people in it!")));
+
+        assertEquals("Content contains hate speech.", ex.getReason());
+        verify(feedbackRepository, never()).save(any());
+    }
+
+    @Test
+    void submitFeedback_moderationNeedsEdit_throwsContentModerationException() {
+        Booking booking = booking("b-1", "u-1", BookingState.STARTED);
+        when(bookingRepository.findById("b-1")).thenReturn(Optional.of(booking));
+        when(feedbackRepository.existsByBookingId("b-1")).thenReturn(false);
+        ModerationResult needsEdit = new ModerationResult(ModerationStatus.NEEDS_EDIT,
+                "Excessive profanity – please revise.");
+        when(moderationService.moderate(anyString())).thenReturn(needsEdit);
+
+        ContentModerationException ex = assertThrows(ContentModerationException.class,
+                () -> feedbackService.submitFeedback("b-1", "u-1",
+                        request(3, "This was f***ing terrible!!!")));
+
+        assertEquals("NEEDS_EDIT", ex.getModerationStatus());
+        verify(feedbackRepository, never()).save(any());
+    }
+
+    @Test
+    void submitFeedback_moderationServiceUnavailable_throwsContentModerationException() {
+        Booking booking = booking("b-1", "u-1", BookingState.STARTED);
+        when(bookingRepository.findById("b-1")).thenReturn(Optional.of(booking));
+        when(feedbackRepository.existsByBookingId("b-1")).thenReturn(false);
+        when(moderationService.moderate(anyString())).thenThrow(
+                new ContentModerationException("UNAVAILABLE",
+                        "Azure OpenAI returned HTTP 503.",
+                        "Content moderation is temporarily unavailable. Please try again later."));
+
+        ContentModerationException ex = assertThrows(ContentModerationException.class,
+                () -> feedbackService.submitFeedback("b-1", "u-1", request(5, "Great tour!")));
+
+        assertEquals("UNAVAILABLE", ex.getModerationStatus());
         verify(feedbackRepository, never()).save(any());
     }
 
@@ -195,18 +264,20 @@ class FeedbackServiceTest {
     }
 
     @Test
-    void updateFeedback_validRequest_resetsToPendingAndPublishesEvent() {
+    void updateFeedback_validRequest_setsApprovedAndPublishesEvent() {
         Booking booking = booking("b-1", "u-1", BookingState.FINISHED);
         when(bookingRepository.findById("b-1")).thenReturn(Optional.of(booking));
         Feedback existing = feedback("f-1", "b-1", "tour-1", "u-1", 5, null);
         existing.setStatus(FeedbackStatus.APPROVED);
         when(feedbackRepository.findByBookingIdAndCustomerId("b-1", "u-1"))
                 .thenReturn(Optional.of(existing));
+        when(moderationService.moderate(anyString())).thenReturn(APPROVED);
         when(feedbackRepository.save(any(Feedback.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        FeedbackResponse response = feedbackService.updateFeedback("b-1", "u-1", updateRequest(3, "Could be better"));
+        FeedbackResponse response = feedbackService.updateFeedback(
+                "b-1", "u-1", updateRequest(3, "Could be better"));
 
-        assertEquals("PENDING", response.getStatus());
+        assertEquals("APPROVED", response.getStatus());
         assertEquals(3, response.getRating());
         verify(eventPublisher).publishEvent(any(FeedbackUpdatedEvent.class));
     }
@@ -218,10 +289,8 @@ class FeedbackServiceTest {
         Feedback existing = feedback("f-1", "b-1", "tour-1", "u-1", 4, "Good");
         when(feedbackRepository.findByBookingIdAndCustomerId("b-1", "u-1"))
                 .thenReturn(Optional.of(existing));
-        when(feedbackRepository.save(any(Feedback.class))).thenAnswer(inv -> {
-            Feedback f = inv.getArgument(0);
-            return f;
-        });
+        when(moderationService.moderate(anyString())).thenReturn(APPROVED);
+        when(feedbackRepository.save(any(Feedback.class))).thenAnswer(inv -> inv.getArgument(0));
 
         ArgumentCaptor<Feedback> captor = ArgumentCaptor.forClass(Feedback.class);
         feedbackService.updateFeedback("b-1", "u-1", updateRequest(2, "Not as expected"));
@@ -229,7 +298,24 @@ class FeedbackServiceTest {
 
         assertEquals(2, captor.getValue().getRating());
         assertEquals("Not as expected", captor.getValue().getComment());
-        assertEquals(FeedbackStatus.PENDING, captor.getValue().getStatus());
+        assertEquals(FeedbackStatus.APPROVED, captor.getValue().getStatus());
+    }
+
+    @Test
+    void updateFeedback_moderationFlagged_throwsRejected_doesNotSave() {
+        Booking booking = booking("b-1", "u-1", BookingState.FINISHED);
+        when(bookingRepository.findById("b-1")).thenReturn(Optional.of(booking));
+        Feedback existing = feedback("f-1", "b-1", "tour-1", "u-1", 5, "Old feedback");
+        when(feedbackRepository.findByBookingIdAndCustomerId("b-1", "u-1"))
+                .thenReturn(Optional.of(existing));
+        when(moderationService.moderate(anyString()))
+                .thenReturn(new ModerationResult(ModerationStatus.FLAGGED, "Spam detected."));
+
+        assertThrows(FeedbackRejectedException.class,
+                () -> feedbackService.updateFeedback("b-1", "u-1",
+                        updateRequest(4, "BUY CHEAP TICKETS AT SPAM.COM")));
+
+        verify(feedbackRepository, never()).save(any());
     }
 
     // ─────────────────────────────────────────────
@@ -351,7 +437,7 @@ class FeedbackServiceTest {
     }
 
     // ─────────────────────────────────────────────
-    // moderateComment
+    // moderateComment (legacy keyword-based)
     // ─────────────────────────────────────────────
 
     @Test
