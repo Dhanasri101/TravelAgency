@@ -37,6 +37,9 @@ public class EmailService {
     @Value("${app.password-reset.from-email:#{null}}")
     private String fromEmail;
 
+    @Value("${app.frontend.url:#{null}}")
+    private String frontendUrl;
+
     public EmailService(
             JavaMailSender mailSender,
             UserRepository repository,
@@ -163,19 +166,21 @@ public class EmailService {
     }
 
     private String buildEmailChangeConfirmationBody(String firstName, String token, String userId) {
+        String baseUrl = frontendUrl != null ? frontendUrl : "https://sprint1-run23-team3-develop-dev-deploy.development.krci-dev.cloudmentor.academy";
         return String.format(
             "Hello %s,\n\n" +
             "You have requested to change your email address for your Travel Agency account.\n\n" +
             "Please use the following confirmation token to complete the change:\n\n" +
             "Token: %s\n\n" +
             "Or click the following link:\n" +
-            "http://localhost:3000/confirm-email?token=%s&userId=%s\n\n" +
+            "%s/confirm-email?token=%s&userId=%s\n\n" +
             "This token will expire in 24 hours.\n\n" +
             "If you did not request this email change, please ignore this email.\n\n" +
             "Best regards,\n" +
             "Travel Agency Team",
             firstName != null ? firstName : "User",
             token,
+            baseUrl,
             token,
             userId
         );

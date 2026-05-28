@@ -214,3 +214,21 @@ env:
       value: "http://team3-frontend-bucket.s3-website.eu-west-3.amazonaws.com/oauth-success"
     - name: OAUTH2_REDIRECT_FAILURE_URL
       value: "http://team3-frontend-bucket.s3-website.eu-west-3.amazonaws.com/sign-in?error="
+    # ── App URLs ──────────────────────────────────────────────────────
+    - name: APP_SERVER_URL
+      value: "https://sprint1-run23-team3-develop-dev-deploy.development.krci-dev.cloudmentor.academy"
+    - name: APP_FRONTEND_URL
+      value: "http://team3-frontend-bucket.s3-website.eu-west-3.amazonaws.com"
+    # ── CAPTCHA (Google reCAPTCHA v2) ─────────────────────────────────
+    - name: CAPTCHA_ENABLED
+      value: "true"
+    - name: CAPTCHA_SECRET_KEY
+      valueFrom:
+        secretKeyRef:
+          name: run23team3-secret
+          key: captcha-secret-key
+    - name: CAPTCHA_SITE_KEY
+      valueFrom:
+        secretKeyRef:
+          name: run23team3-secret
+          key: captcha-site-key

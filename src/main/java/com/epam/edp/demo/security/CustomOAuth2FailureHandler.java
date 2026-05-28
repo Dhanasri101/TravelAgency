@@ -33,7 +33,7 @@ public class CustomOAuth2FailureHandler extends SimpleUrlAuthenticationFailureHa
     private final String failureUrl;
 
     public CustomOAuth2FailureHandler(
-            @Value("${app.oauth2.redirect-failure-url:http://localhost:3000/login?error=}") String failureUrl) {
+            @Value("${app.oauth2.redirect-failure-url}") String failureUrl) {
         this.failureUrl = failureUrl;
     }
 

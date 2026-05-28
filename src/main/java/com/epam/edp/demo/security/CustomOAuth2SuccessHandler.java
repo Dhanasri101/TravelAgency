@@ -45,8 +45,8 @@ public class CustomOAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHa
     public CustomOAuth2SuccessHandler(
             JwtService jwtService,
             UserRepository userRepository,
-            @Value("${app.oauth2.redirect-success-url:http://localhost:3000/oauth-success}") String successUrl,
-            @Value("${app.oauth2.redirect-failure-url:http://localhost:3000/login?error=}") String failureUrl) {
+            @Value("${app.oauth2.redirect-success-url}") String successUrl,
+            @Value("${app.oauth2.redirect-failure-url}") String failureUrl) {
         this.jwtService = jwtService;
         this.userRepository = userRepository;
         this.successUrl = successUrl;
