@@ -33,6 +33,15 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
+  // Used by OAuth2 social login: we only receive a raw JWT token from the redirect URL.
+  // Store it, then fetch user profile from /auth/me to populate auth state.
+  const loginWithToken = useCallback(async (rawToken) => {
+    localStorage.setItem(TOKEN_KEY, rawToken);
+    setToken(rawToken);
+    const me = await fetchMe(); // throws if token is invalid
+    setUser(me);
+  }, []);
+
   const refreshUser = useCallback(async () => {
     if (!token) return;
     try {
@@ -62,7 +71,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, loginWith, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, token, loading, loginWith, loginWithToken, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );
