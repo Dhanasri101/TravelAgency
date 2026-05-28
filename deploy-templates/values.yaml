@@ -205,16 +205,6 @@ env:
         secretKeyRef:
           name: run23team3-secret
           key: google-client-secret
-    - name: GITHUB_CLIENT_ID
-      valueFrom:
-        secretKeyRef:
-          name: run23team3-secret
-          key: github-client-id
-    - name: GITHUB_CLIENT_SECRET
-      valueFrom:
-        secretKeyRef:
-          name: run23team3-secret
-          key: github-client-secret
     - name: FACEBOOK_CLIENT_ID
       value: "placeholder-facebook-client-id"
     - name: FACEBOOK_CLIENT_SECRET
