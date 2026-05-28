@@ -103,6 +103,13 @@
             <artifactId>spring-boot-starter-oauth2-client</artifactId>
         </dependency>
 
+        <!-- Azure OpenAI SDK for AI-powered content moderation -->
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-ai-openai</artifactId>
+            <version>1.0.0-beta.13</version>
+        </dependency>
+
     </dependencies>
 
     <build>
