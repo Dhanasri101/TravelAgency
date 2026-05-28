@@ -194,3 +194,33 @@ env:
       value: "eu-west-3"
     - name: AWS_S3_BUCKET
       value: "team3-files-bucket"
+    # ── OAuth2 social login ───────────────────────────────────────────
+    - name: GOOGLE_CLIENT_ID
+      valueFrom:
+        secretKeyRef:
+          name: run23team3-secret
+          key: google-client-id
+    - name: GOOGLE_CLIENT_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: run23team3-secret
+          key: google-client-secret
+    - name: GITHUB_CLIENT_ID
+      valueFrom:
+        secretKeyRef:
+          name: run23team3-secret
+          key: github-client-id
+    - name: GITHUB_CLIENT_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: run23team3-secret
+          key: github-client-secret
+    - name: FACEBOOK_CLIENT_ID
+      value: "placeholder-facebook-client-id"
+    - name: FACEBOOK_CLIENT_SECRET
+      value: "placeholder-facebook-client-secret"
+    # ── OAuth2 redirect URLs (point to deployed frontend) ─────────────
+    - name: OAUTH2_REDIRECT_SUCCESS_URL
+      value: "http://team3-frontend-bucket.s3-website.eu-west-3.amazonaws.com/oauth-success"
+    - name: OAUTH2_REDIRECT_FAILURE_URL
+      value: "http://team3-frontend-bucket.s3-website.eu-west-3.amazonaws.com/sign-in?error="
