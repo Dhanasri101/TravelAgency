@@ -26,6 +26,7 @@ import com.epam.edp.demo.exception.UnauthenticatedException;
 import com.epam.edp.demo.model.User;
 import com.epam.edp.demo.service.UserService;
 import com.epam.edp.demo.service.PasswordResetService;
+import com.epam.edp.demo.service.CaptchaService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -35,6 +36,8 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.Map;
 
+import org.springframework.beans.factory.annotation.Value;
+
 @RestController
 @RequestMapping("/api/v1/auth")
 @Tag(name = "Authentication", description = "Authentication and current user endpoints")
@@ -42,10 +45,15 @@ public class AuthController {
 
     private final UserService userService;
     private final PasswordResetService passwordResetService;
+    private final CaptchaService captchaService;
 
-    public AuthController(UserService userService, PasswordResetService passwordResetService) {
+    @Value("${app.server.url}")
+    private String serverUrl;
+
+    public AuthController(UserService userService, PasswordResetService passwordResetService, CaptchaService captchaService) {
         this.userService = userService;
         this.passwordResetService = passwordResetService;
+        this.captchaService = captchaService;
     }
 
     @PostMapping("/sign-up")
@@ -63,6 +71,7 @@ public class AuthController {
                     description = "Registration details for the new user account.",
                     required = true)
                 @Valid @RequestBody SignUpRequestDTO request) {
+        captchaService.verify(request.getCaptchaToken());
         userService.signUp(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(SignUpResponseDTO.ok());
     }
@@ -141,7 +150,7 @@ public class AuthController {
             content = @Content(schema = @Schema(implementation = LoginUrlResponseDTO.class)))
     })
     public ResponseEntity<LoginUrlResponseDTO> googleLoginUrl() {
-        return ResponseEntity.ok(new LoginUrlResponseDTO("google", "http://localhost:8080/oauth2/authorization/google"));
+        return ResponseEntity.ok(new LoginUrlResponseDTO("google", serverUrl + "/oauth2/authorization/google"));
     }
 
     /**
@@ -161,7 +170,7 @@ public class AuthController {
             content = @Content(schema = @Schema(implementation = LoginUrlResponseDTO.class)))
     })
     public ResponseEntity<LoginUrlResponseDTO> githubLoginUrl() {
-        return ResponseEntity.ok(new LoginUrlResponseDTO("github", "http://localhost:8080/oauth2/authorization/github"));
+        return ResponseEntity.ok(new LoginUrlResponseDTO("github", serverUrl + "/oauth2/authorization/github"));
     }
 
     /**
@@ -181,7 +190,7 @@ public class AuthController {
             content = @Content(schema = @Schema(implementation = LoginUrlResponseDTO.class)))
     })
     public ResponseEntity<LoginUrlResponseDTO> facebookLoginUrl() {
-        return ResponseEntity.ok(new LoginUrlResponseDTO("facebook", "http://localhost:8080/oauth2/authorization/facebook"));
+        return ResponseEntity.ok(new LoginUrlResponseDTO("facebook", serverUrl + "/oauth2/authorization/facebook"));
     }
 
     /**

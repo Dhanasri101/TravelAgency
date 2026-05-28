@@ -41,6 +41,9 @@ public class SignUpRequestDTO {
     @Pattern(regexp = ".*[^A-Za-z0-9].*", message = "Password must contain at least one special character")
     @Schema(description = "Password with at least one uppercase letter, one number, and one special character", example = "Travel@123")
     private String password;
+
+    @Schema(description = "Google reCAPTCHA token from frontend widget", example = "03AGdBq24...")
+    private String captchaToken;
 }
 
 
