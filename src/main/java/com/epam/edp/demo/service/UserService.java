@@ -54,6 +54,10 @@ public class UserService {
         this.lockoutDuration = Duration.ofMinutes(lockoutMinutes);
     }
 
+    public boolean emailExists(String email) {
+        return repository.existsByEmail(email);
+    }
+
     public User signUp(SignUpRequestDTO req) {
         String firstName = req.getFirstName().trim();
         String email = req.getEmail().trim().toLowerCase(Locale.ROOT);
