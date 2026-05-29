@@ -76,6 +76,16 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.CREATED).body(SignUpResponseDTO.ok());
     }
 
+    @GetMapping("/check-email")
+    @Operation(summary = "Check email availability", description = "Returns whether an email is already registered.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Email availability status")
+    })
+    public ResponseEntity<Map<String, Boolean>> checkEmail(@org.springframework.web.bind.annotation.RequestParam String email) {
+        boolean exists = userService.emailExists(email.trim().toLowerCase(java.util.Locale.ROOT));
+        return ResponseEntity.ok(Map.of("exists", exists));
+    }
+
     @PostMapping("/sign-in")
         @Operation(summary = "Sign in", description = "Authenticates a user and returns an access token.")
         @ApiResponses(value = {
