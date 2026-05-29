@@ -22,11 +22,14 @@ import com.epam.edp.demo.dto.LoginUrlResponseDTO;
 import com.epam.edp.demo.dto.PasswordResetRequestDTO;
 import com.epam.edp.demo.dto.VerifyResetCodeDTO;
 import com.epam.edp.demo.dto.ResetPasswordDTO;
+import com.epam.edp.demo.dto.EmailVerificationRequestDTO;
+import com.epam.edp.demo.dto.VerifyEmailCodeDTO;
 import com.epam.edp.demo.exception.UnauthenticatedException;
 import com.epam.edp.demo.model.User;
 import com.epam.edp.demo.service.UserService;
 import com.epam.edp.demo.service.PasswordResetService;
 import com.epam.edp.demo.service.CaptchaService;
+import com.epam.edp.demo.service.EmailVerificationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -46,14 +49,16 @@ public class AuthController {
     private final UserService userService;
     private final PasswordResetService passwordResetService;
     private final CaptchaService captchaService;
+    private final EmailVerificationService emailVerificationService;
 
     @Value("${app.server.url}")
     private String serverUrl;
 
-    public AuthController(UserService userService, PasswordResetService passwordResetService, CaptchaService captchaService) {
+    public AuthController(UserService userService, PasswordResetService passwordResetService, CaptchaService captchaService, EmailVerificationService emailVerificationService) {
         this.userService = userService;
         this.passwordResetService = passwordResetService;
         this.captchaService = captchaService;
+        this.emailVerificationService = emailVerificationService;
     }
 
     @PostMapping("/sign-up")
@@ -141,6 +146,28 @@ public class AuthController {
     public ResponseEntity<Map<String, String>> resetPassword(@Valid @RequestBody ResetPasswordDTO request) {
         passwordResetService.resetPassword(request.getEmail(), request.getCode(), request.getNewPassword());
         return ResponseEntity.ok(Map.of("message", "Password has been reset successfully"));
+    }
+
+    @PostMapping("/email-verification/request")
+    @Operation(summary = "Request email verification code", description = "Sends a verification code to the provided email for registration.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Verification code sent successfully"),
+        @ApiResponse(responseCode = "400", description = "Invalid email format")
+    })
+    public ResponseEntity<Map<String, String>> requestEmailVerification(@Valid @RequestBody EmailVerificationRequestDTO request) {
+        emailVerificationService.requestEmailVerification(request.getEmail());
+        return ResponseEntity.ok(Map.of("message", "Verification code has been sent to your email"));
+    }
+
+    @PostMapping("/email-verification/verify")
+    @Operation(summary = "Verify email code", description = "Verifies the email verification code sent during registration.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Email verification code is valid"),
+        @ApiResponse(responseCode = "400", description = "Invalid or expired verification code")
+    })
+    public ResponseEntity<Map<String, String>> verifyEmailCode(@Valid @RequestBody VerifyEmailCodeDTO request) {
+        emailVerificationService.verifyEmailCode(request.getEmail(), request.getCode());
+        return ResponseEntity.ok(Map.of("message", "Email verification code is valid"));
     }
 
     /**

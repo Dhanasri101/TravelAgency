@@ -98,6 +98,52 @@ public class EmailService {
     }
 
     // ═══════════════════════════════════════════════════════════════
+    // Email Verification for Registration
+    // ═══════════════════════════════════════════════════════════════
+
+    /**
+     * Send email verification code for registration.
+     */
+    public void sendEmailVerificationCode(String to, String code) {
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            if (fromEmail != null && !fromEmail.isEmpty()) {
+                message.setFrom(fromEmail);
+                log.debug("Using configured from email: {}", fromEmail);
+            } else {
+                log.warn("No from email configured. Email may fail or use default sender.");
+            }
+            message.setTo(to);
+            message.setSubject("Email Verification Code - Travel Agency");
+            message.setText(buildEmailVerificationBody(code));
+            
+            log.debug("Attempting to send email verification to: {}", to);
+            mailSender.send(message);
+            log.info("Email verification sent successfully to: {}", to);
+        } catch (Exception e) {
+            log.error("Failed to send email verification to: {}. Error: {} - {}", to, e.getClass().getSimpleName(), e.getMessage());
+            if (e.getCause() != null) {
+                log.error("Caused by: {} - {}", e.getCause().getClass().getSimpleName(), e.getCause().getMessage());
+            }
+            throw new RuntimeException("Failed to send email. Please try again later. Error: " + e.getMessage());
+        }
+    }
+
+    private String buildEmailVerificationBody(String code) {
+        return String.format(
+            "Hello,\n\n" +
+            "Thank you for registering with Travel Agency!\n\n" +
+            "Your verification code is: %s\n\n" +
+            "This code will expire in 15 minutes.\n\n" +
+            "Please enter this code to verify your email address and complete your registration.\n\n" +
+            "If you did not create an account, please ignore this email.\n\n" +
+            "Best regards,\n" +
+            "Travel Agency Team",
+            code
+        );
+    }
+
+    // ═══════════════════════════════════════════════════════════════
     // Email Change (from feature branch)
     // ═══════════════════════════════════════════════════════════════
 
