@@ -6,7 +6,7 @@ import TextField from '../components/TextField';
 import PasswordField from '../components/PasswordField';
 import PasswordRuleList from '../components/PasswordRuleList';
 import { allRulesPass, evaluatePasswordRules } from '../hooks/usePasswordRules';
-import { signUp, loginWithGoogle, loginWithFacebook } from '../api/auth';
+import { signUp, loginWithGoogle, loginWithFacebook, checkEmailExists } from '../api/auth';
 import '../styles/components.css';
 
 const RECAPTCHA_SITE_KEY = process.env.REACT_APP_RECAPTCHA_SITE_KEY;
@@ -116,7 +116,7 @@ export default function RegisterPage() {
     return errs;
   }
 
-  function handleNext(e) {
+  async function handleNext(e) {
     e.preventDefault();
     setBanner(null);
     setCaptchaError(null);
@@ -130,6 +130,19 @@ export default function RegisterPage() {
       setCaptchaError('Please complete the CAPTCHA verification.');
       return;
     }
+    // Check if email already exists before proceeding to step 2
+    setSubmitting(true);
+    try {
+      const exists = await checkEmailExists(form.email.trim());
+      if (exists) {
+        setFieldErrors({ email: 'An account with this email already exists.' });
+        setSubmitting(false);
+        return;
+      }
+    } catch (_) {
+      // If check fails, allow proceeding — signup will catch it
+    }
+    setSubmitting(false);
     setFieldErrors({});
     setStep(2);
   }
@@ -256,9 +269,9 @@ export default function RegisterPage() {
           <button
             className="btn-primary"
             type="submit"
-            disabled={!form.firstName.trim() || !form.lastName.trim() || !form.email.trim() || !captchaToken}
+            disabled={submitting || !form.firstName.trim() || !form.lastName.trim() || !form.email.trim() || !captchaToken}
           >
-            Continue
+            {submitting ? 'Checking\u2026' : 'Continue'}
           </button>
 
           <div className="form-footer">
