@@ -56,3 +56,22 @@ export function loginWithGitHub() {
 export function loginWithFacebook() {
   window.location.href = `${API_BASE_URL}/oauth2/authorization/facebook`;
 }
+
+// Email verification for registration
+export async function requestEmailVerification(email) {
+  try {
+    const { data } = await client.post('/auth/email-verification/request', { email });
+    return data;
+  } catch (err) {
+    throw normalize(err);
+  }
+}
+
+export async function verifyEmailCode(email, code) {
+  try {
+    const { data } = await client.post('/auth/email-verification/verify', { email, code });
+    return data;
+  } catch (err) {
+    throw normalize(err);
+  }
+}

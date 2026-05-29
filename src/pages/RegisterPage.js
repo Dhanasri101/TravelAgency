@@ -1,13 +1,15 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useMemo, useRef, useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import ReCAPTCHA from 'react-google-recaptcha';
 import SplitLayout from '../components/SplitLayout';
 import TextField from '../components/TextField';
 import PasswordField from '../components/PasswordField';
 import PasswordRuleList from '../components/PasswordRuleList';
+import Toast from '../components/Toast';
 import { allRulesPass, evaluatePasswordRules } from '../hooks/usePasswordRules';
-import { signUp, loginWithGoogle, loginWithFacebook, checkEmailExists } from '../api/auth';
+import { signUp, loginWithGoogle, loginWithFacebook, checkEmailExists, requestEmailVerification, verifyEmailCode } from '../api/auth';
 import '../styles/components.css';
+import './VerifyCodePage.css';
 
 const RECAPTCHA_SITE_KEY = process.env.REACT_APP_RECAPTCHA_SITE_KEY;
 
@@ -29,11 +31,27 @@ export default function RegisterPage() {
   const [captchaToken, setCaptchaToken] = useState(null);
   const [captchaError, setCaptchaError] = useState(null);
   const recaptchaRef = useRef(null);
+  
+  // Verification step state
+  const [verificationCode, setVerificationCode] = useState('');
+  const [countdown, setCountdown] = useState(59);
+  const [canResend, setCanResend] = useState(false);
+  const [showToast, setShowToast] = useState(false);
 
   const rules = useMemo(
     () => evaluatePasswordRules(form.password, form.firstName, form.email),
     [form.password, form.firstName, form.email]
   );
+
+  // Countdown timer for step 2
+  useEffect(() => {
+    if (step === 2 && countdown > 0) {
+      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+      return () => clearTimeout(timer);
+    } else if (step === 2 && countdown === 0) {
+      setCanResend(true);
+    }
+  }, [countdown, step]);
 
   function validateField(name, state) {
     const v = state[name];
@@ -107,6 +125,16 @@ export default function RegisterPage() {
   }
 
   function validateStep2() {
+    const errs = {};
+    if (!verificationCode.trim()) {
+      errs.code = 'Verification code is required';
+    } else if (verificationCode.trim().length < 6) {
+      errs.code = 'Please enter a valid verification code';
+    }
+    return errs;
+  }
+
+  function validateStep3() {
     const fields = ['password', 'confirmPassword'];
     const errs = {};
     fields.forEach((k) => {
@@ -139,27 +167,79 @@ export default function RegisterPage() {
         setSubmitting(false);
         return;
       }
-    } catch (_) {
-      // If check fails, allow proceeding — signup will catch it
+      // Send verification code
+      await requestEmailVerification(form.email.trim());
+      setFieldErrors({});
+      setStep(2);
+      setCountdown(59);
+      setCanResend(false);
+      setVerificationCode('');
+    } catch (err) {
+      setBanner(err.message || 'Failed to send verification code. Please try again.');
+    } finally {
+      setSubmitting(false);
     }
-    setSubmitting(false);
-    setFieldErrors({});
-    setStep(2);
   }
 
-  function handleBack() {
+  function handleBackToStep1() {
     setStep(1);
     setBanner(null);
-    setCaptchaToken(null);
-    setCaptchaError(null);
-    if (recaptchaRef.current) recaptchaRef.current.reset();
+    setFieldErrors({});
+  }
+
+  async function handleVerify(e) {
+    e.preventDefault();
+    setBanner(null);
+    const errs = validateStep2();
+    if (Object.keys(errs).length) {
+      setFieldErrors(errs);
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await verifyEmailCode(form.email.trim(), verificationCode.trim());
+      setFieldErrors({});
+      setBanner(null);
+      setStep(3);
+    } catch (err) {
+      const message = err.response?.data?.message || 'Invalid verification code. Please try again.';
+      if (err.response?.data?.fieldErrors) {
+        setFieldErrors(err.response.data.fieldErrors);
+      } else {
+        setFieldErrors({ code: message });
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleResend() {
+    if (!canResend) return;
+    
+    setCanResend(false);
+    setCountdown(59);
+    
+    try {
+      await requestEmailVerification(form.email.trim());
+      setShowToast(true);
+    } catch (err) {
+      console.error('Failed to resend code:', err);
+      setShowToast(true);
+    }
+  }
+
+  function handleBackToStep2() {
+    setStep(2);
+    setBanner(null);
+    setFieldErrors({});
   }
 
   async function onSubmit(e) {
     e.preventDefault();
     setBanner(null);
     setCaptchaError(null);
-    const errs = validateStep2();
+    const errs = validateStep3();
     if (Object.keys(errs).length) {
       setFieldErrors(errs);
       setTouched((t) => ({ ...t, password: true, confirmPassword: true }));
@@ -173,6 +253,7 @@ export default function RegisterPage() {
         email: form.email.trim(),
         password: form.password,
         captchaToken: captchaToken,
+        verificationCode: verificationCode.trim(),
       });
       navigate('/sign-in', {
         state: { justRegistered: true, email: form.email.trim(), from: redirectTo },
@@ -200,6 +281,14 @@ export default function RegisterPage() {
 
   return (
     <SplitLayout>
+      {showToast && (
+        <Toast
+          title="Code resent"
+          message="A new verification code has been sent to your email."
+          onClose={() => setShowToast(false)}
+        />
+      )}
+
       <div className="eyebrow">LET&rsquo;S GET YOU STARTED</div>
       <h1 className="page-title">Create an account</h1>
 
@@ -208,7 +297,9 @@ export default function RegisterPage() {
         <span className={`step-dot ${step >= 1 ? 'step-dot--active' : ''}`} style={{ width: '10px', height: '10px', borderRadius: '50%', background: step >= 1 ? '#1a73e8' : '#ccc' }} />
         <span style={{ width: '40px', height: '2px', background: step >= 2 ? '#1a73e8' : '#ccc' }} />
         <span className={`step-dot ${step >= 2 ? 'step-dot--active' : ''}`} style={{ width: '10px', height: '10px', borderRadius: '50%', background: step >= 2 ? '#1a73e8' : '#ccc' }} />
-        <span style={{ marginLeft: '12px', fontSize: '0.85rem', color: '#666' }}>Step {step} of 2</span>
+        <span style={{ width: '40px', height: '2px', background: step >= 3 ? '#1a73e8' : '#ccc' }} />
+        <span className={`step-dot ${step >= 3 ? 'step-dot--active' : ''}`} style={{ width: '10px', height: '10px', borderRadius: '50%', background: step >= 3 ? '#1a73e8' : '#ccc' }} />
+        <span style={{ marginLeft: '12px', fontSize: '0.85rem', color: '#666' }}>Step {step} of 3</span>
       </div>
 
       {banner && <div className="banner-error" role="alert">{banner}</div>}
@@ -325,8 +416,71 @@ export default function RegisterPage() {
         </form>
       )}
 
-      {/* ─── STEP 2: Password ─── */}
+      {/* ─── STEP 2: Email Verification ─── */}
       {step === 2 && (
+        <div className="verify-code-container">
+          <p className="verify-message">
+            The verification code has been sent to your email to <strong>{form.email}</strong>.
+          </p>
+
+          <form onSubmit={handleVerify} noValidate>
+            <TextField
+              label="Verification code"
+              type="text"
+              placeholder="Enter verification code"
+              autoComplete="off"
+              value={verificationCode}
+              onChange={(e) => {
+                setVerificationCode(e.target.value);
+                if (fieldErrors.code) {
+                  setFieldErrors((prev) => {
+                    const next = { ...prev };
+                    delete next.code;
+                    return next;
+                  });
+                }
+              }}
+              error={fieldErrors.code}
+            />
+            
+            <div className="resend-row">
+              {canResend ? (
+                <button type="button" className="resend-link" onClick={handleResend}>
+                  Not received yet? <span className="resend-action">Resend</span>
+                </button>
+              ) : (
+                <span className="resend-text">
+                  Not received yet? Resend in {countdown} seconds
+                </span>
+              )}
+            </div>
+
+            <div className="form-actions">
+              <button 
+                className="btn-primary" 
+                type="submit" 
+                disabled={submitting || !verificationCode.trim()}
+              >
+                {submitting ? 'Verifying\u2026' : 'Continue'}
+              </button>
+              <button
+                className="btn-secondary"
+                type="button"
+                onClick={handleBackToStep1}
+              >
+                Back
+              </button>
+            </div>
+
+            <div className="form-footer">
+              Already have an account? <Link to="/sign-in" state={{ from: redirectTo }}>Login</Link> instead
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* ─── STEP 3: Password ─── */}
+      {step === 3 && (
         <form onSubmit={onSubmit} noValidate>
           <div className="form-grid">
             <div className="form-row">
@@ -366,7 +520,7 @@ export default function RegisterPage() {
             <button
               className="btn-secondary"
               type="button"
-              onClick={handleBack}
+              onClick={handleBackToStep2}
             >
               Back
             </button>
