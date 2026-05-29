@@ -16,6 +16,15 @@ export async function signUp(payload) {
   }
 }
 
+export async function checkEmailExists(email) {
+  try {
+    const { data } = await client.get('/auth/check-email', { params: { email } });
+    return data.exists;
+  } catch (err) {
+    return false;
+  }
+}
+
 export async function signIn(payload) {
   try {
     const { data } = await client.post('/auth/sign-in', payload);
