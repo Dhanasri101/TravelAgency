@@ -11,6 +11,7 @@ import com.epam.edp.demo.model.User;
 import com.epam.edp.demo.service.UserService;
 import com.epam.edp.demo.service.PasswordResetService;
 import com.epam.edp.demo.service.CaptchaService;
+import com.epam.edp.demo.service.EmailVerificationService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -43,11 +44,14 @@ class AuthControllerTest {
     @Mock
     private CaptchaService captchaService;
 
+    @Mock
+    private EmailVerificationService emailVerificationService;
+
     private AuthController authController;
 
     @BeforeEach
     void setUp() {
-        authController = new AuthController(userService, passwordResetService, captchaService);
+        authController = new AuthController(userService, passwordResetService, captchaService, emailVerificationService);
         SecurityContextHolder.clearContext();
     }
 
