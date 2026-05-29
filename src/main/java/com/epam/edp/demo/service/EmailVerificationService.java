@@ -9,6 +9,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
 
+/**
+ * Service for email verification during user registration.
+ * Generates a 6-digit OTP, stores it with a 15-minute TTL, and sends it via email.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
