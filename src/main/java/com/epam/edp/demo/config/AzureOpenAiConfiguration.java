@@ -3,7 +3,10 @@ package com.epam.edp.demo.config;
 import com.azure.ai.openai.OpenAIClient;
 import com.azure.ai.openai.OpenAIClientBuilder;
 import com.azure.core.credential.AzureKeyCredential;
+import jakarta.annotation.PostConstruct;
 import lombok.Getter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -31,6 +34,8 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @Getter
 public class AzureOpenAiConfiguration {
+
+    private static final Logger log = LoggerFactory.getLogger(AzureOpenAiConfiguration.class);
 
     /**
      * Azure OpenAI endpoint URL.
@@ -65,10 +70,23 @@ public class AzureOpenAiConfiguration {
      */
     @Bean
     public OpenAIClient openAIClient() {
+        log.info("[AzureOpenAI] Building OpenAI client — endpoint='{}', deployment='{}', keyPrefix='{}'",
+                endpoint, deployment,
+                (apiKey != null && apiKey.length() >= 4) ? apiKey.substring(0, 4) + "..." : "NOT_SET");
+        if ("REPLACE_WITH_SECRET".equals(apiKey) || apiKey == null || apiKey.isBlank()) {
+            log.error("[AzureOpenAI] *** AZURE_OPENAI_API_KEY is not set! AI features will fail. " +
+                    "Please set AZURE_OPENAI_API_KEY in your .env file. ***");
+        }
         return new OpenAIClientBuilder()
                 .endpoint(endpoint)
-                .credential(new AzureKeyCredential(apiKey))
+                .credential(new AzureKeyCredential(apiKey.trim()))
                 .buildClient();
+    }
+
+    @PostConstruct
+    public void logConfig() {
+        log.info("[AzureOpenAI] Configuration loaded — endpoint='{}', deployment='{}', keyLength={}",
+                endpoint, deployment, (apiKey != null ? apiKey.length() : 0));
     }
 }
 
