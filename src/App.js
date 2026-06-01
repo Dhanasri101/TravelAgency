@@ -9,6 +9,7 @@ import HomePage from './pages/HomePage';
 import TourDetailPage from './pages/TourDetailPage';
 import MyToursPage from './pages/MyToursPage';
 import ReportsPage from './pages/ReportsPage';
+import ReportAnalysisPage from './pages/ReportAnalysisPage';
 import FeedbackModerationPage from './pages/FeedbackModerationPage';
 import ProfilePage from './pages/ProfilePage';
 import ConfirmEmailPage from './pages/ConfirmEmailPage';
@@ -90,6 +91,14 @@ export default function App() {
         element={
           <AdminRoute>
             <FeedbackModerationPage />
+          </AdminRoute>
+        }
+      />
+      <Route
+        path="/admin/report-analysis"
+        element={
+          <AdminRoute>
+            <ReportAnalysisPage />
           </AdminRoute>
         }
       />
