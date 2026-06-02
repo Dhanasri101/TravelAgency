@@ -96,6 +96,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/tours/*/feedback").authenticated()
                 .requestMatchers("/api/v1/reports/**").hasRole("ADMIN")
                 .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
+                // Report Analysis AI endpoints — admin only
+                .requestMatchers("/api/reports/**").hasRole("ADMIN")
                 .requestMatchers("/api/v1/users/**").authenticated()
                 .anyRequest().permitAll()
             )
