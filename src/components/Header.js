@@ -140,6 +140,14 @@ export default function Header({ activeTab, onTabChange }) {
               Feedback
             </button>
           )}
+          {user && user.role === 'ADMIN' && (
+            <button
+              className={`nav-tab ${location.pathname === '/admin/report-analysis' ? 'active' : ''}`}
+              onClick={() => navigate('/admin/report-analysis')}
+            >
+              AI Analysis
+            </button>
+          )}
         </nav>
 
         <div className="header-right">
